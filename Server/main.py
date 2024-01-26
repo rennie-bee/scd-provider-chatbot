@@ -1,6 +1,21 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template("index.html")
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.json
+    user_input = data.get('message', '')
+    
+    if not user_input:
+        return jsonify({'error': 'No message provided'}), 400
+
+    response = simple_chatbot_logic(user_input)
+    return jsonify({'response': response})
 
 def simple_chatbot_logic(user_input):
     """
@@ -14,16 +29,5 @@ def simple_chatbot_logic(user_input):
     else:
         return "I'm not sure how to respond to that. Can you try asking something else?"
 
-@app.route('/chat', methods=['POST'])
-def chat():
-    data = request.json
-    user_input = data.get('message', '')
-    
-    if not user_input:
-        return jsonify({'error': 'No message provided'}), 400
-
-    response = simple_chatbot_logic(user_input)
-    return jsonify({'response': response})
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='127.0.0.1', port=8080, debug=True)
