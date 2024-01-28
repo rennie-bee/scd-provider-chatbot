@@ -9,7 +9,7 @@ def index():
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.json
-    user_input = data.get('message', '')
+    user_input = data.get('user_input', '')
     
     if not user_input:
         return jsonify({'error': 'No message provided'}), 400
