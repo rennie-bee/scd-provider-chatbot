@@ -20,7 +20,7 @@ def chat():
 def simple_chatbot_logic(user_input):
     """
     A very simple chatbot logic that responds to user input.
-    In a real application, this could be replaced with more complex logic or AI.
+    In the future, this could be replaced with more complex logic or AI.
     """
     if user_input.lower() == 'hello':
         return "Hello! How can I help you today?"
