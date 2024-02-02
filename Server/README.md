@@ -19,7 +19,7 @@ $cd Server
 ```shell
 $pip install -r requirements.txt
 ```
-This will install all the Python packages needed for the Server as listed in `requirements.txt`.
+This will install all the Python packages needed for the Flask application as listed in `requirements.txt`.
 
 ## Running Flask
 After installing, you can start the Flask application using:
