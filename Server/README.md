@@ -9,7 +9,7 @@ To set up Flask, follow these steps:
 $git clone https://github.com/rennie-bee/scd-provider-chatbot.git
 ```
 
-3. Navigate to the project directory:
+3. Navigate to the Server directory:
 ```shell
 $cd scd-provider-chatbot
 $cd Server
@@ -19,7 +19,7 @@ $cd Server
 ```shell
 $pip install -r requirements.txt
 ```
-This will install all the Python packages needed for the project as listed in `requirements.txt`.
+This will install all the Python packages needed for the Server as listed in `requirements.txt`.
 
 ## Running Flask
 After installing, you can start the Flask application using:
