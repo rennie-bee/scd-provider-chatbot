@@ -1,6 +1,6 @@
 ## Set up Flask on your local machine
 
-To set up Flask, follow these steps:
+To set up Flask, please follow these steps:
 
 1. Ensure you have installed the latest version of [Python](https://www.python.org/downloads/)
 
@@ -12,7 +12,7 @@ $git clone https://github.com/rennie-bee/scd-provider-chatbot.git
 3. Navigate to the Server directory:
 ```shell
 $cd scd-provider-chatbot
-$cd Server
+$cd server
 ```
 
 4. Install the required packages:
