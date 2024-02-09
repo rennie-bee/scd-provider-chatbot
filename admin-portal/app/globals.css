@@ -19,9 +19,3 @@
 body {
   color: rgb(var(--foreground-rgb));
 }
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
