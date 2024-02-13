@@ -9,12 +9,23 @@ const UploadPage: NextPage = () => {
     const [uploadProgress, setUploadProgress] = useState<number>(0);
     const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
     const formRef = useRef<HTMLFormElement>(null);
+    const fileInputRef = useRef(null);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files ? event.target.files[0] : null;
       if (file) {
         setFileName(file.name);
       }
+      else {
+        setFileName('');
+      }
+    };
+
+    const unselectFile = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';  // Reset file input
+        }
+        setFileName('');  // Reset file name
     };
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -75,17 +86,22 @@ const UploadPage: NextPage = () => {
                 <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{'TXT, DOCX, PDF or XLSX (MAX 100MB)'}</p>
               </div>
-              <input id="dropzone-file" type="file" name="file" className="hidden" onChange={handleFileChange} required />
+              <input ref={fileInputRef} id="dropzone-file" type="file" name="file" className="hidden" onChange={handleFileChange} required />
             </label>
           </div>
 
           {fileName && (
             <div className="flex items-center justify-center w-full pl-[25%] pr-[25%] mt-4 px-4">
               <div className="flex items-center w-full max-w-xl">
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-300 block truncate">
+                <div className="flex items-center flex-1 min-w-0">
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-300 truncate">
                     {fileName}
                   </span>
+                  <button type="button" onClick={unselectFile} className="ml-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                  </button>
                 </div>
                 <div className="w-32 ml-4">
                   <progress className="progress w-full" value={uploadProgress} max="100"></progress>
