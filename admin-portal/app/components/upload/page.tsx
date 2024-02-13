@@ -1,32 +1,34 @@
 'use client'
 
 import { NextPage } from 'next';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 const UploadPage: NextPage = () => {
     const [fileName, setFileName] = useState<string>('');
+    const [showModal, setShowModal] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<number>(0);
+    const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
+    const formRef = useRef<HTMLFormElement>(null);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files ? event.target.files[0] : null;
-        if (file) {
-            setFileName(file.name);
-        }
+      const file = event.target.files ? event.target.files[0] : null;
+      if (file) {
+        setFileName(file.name);
+      }
     };
-
-    const [uploadProgress, setUploadProgress] = useState<number>(0);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        setUploadSuccess(false);
       
         const fileInput = document.getElementById('dropzone-file') as HTMLInputElement;
         if (fileInput?.files?.[0]) {
           const file = fileInput.files[0];
           const formData = new FormData();
           formData.append('file', file);
-      
+
           const xhr = new XMLHttpRequest();
       
-          // Listen for `upload.progress` event
           xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
               const percent = (event.loaded / event.total) * 100;
@@ -34,56 +36,79 @@ const UploadPage: NextPage = () => {
             }
           };
       
-          // Set up the request
           xhr.open('POST', '/api/upload', true);
       
-          // Set up a handler for when the request finishes
           xhr.onload = () => {
             if (xhr.status === 200) {
               console.log('File uploaded successfully');
-      
-              // Reset the form and state
-              setFileName('');
-              setUploadProgress(0);
-              fileInput.value = ''; // Reset file input
-      
-              // Optionally, show a success message
-              alert('File uploaded successfully!');
+              setUploadSuccess(true);
+              setShowModal(true);
             } else {
               console.error('Error in file upload');
-              // Handle error
+              setUploadSuccess(false);
             }
           };
       
-          // Send the request
           xhr.send(formData);
+        }
+    };
+
+    const handleModalClose = () => {
+        setShowModal(false); // Hide the modal
+        setFileName(''); // Reset file name
+        setUploadProgress(0); // Reset progress
+        if (formRef.current) {
+          formRef.current.reset(); // Reset the form
         }
     };
       
 
     return (
-        <form onSubmit={handleSubmit}>
+      <div>
+        <form ref={formRef} onSubmit={handleSubmit}>
           <div className="flex items-center justify-center w-full pl-[25%] pr-[25%]">
             <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
                 </svg>
-                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{fileName || 'TXT, DOCX, PDF or XLSX (MAX 100MB)'}</p>
+                <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{'TXT, DOCX, PDF or XLSX (MAX 100MB)'}</p>
               </div>
               <input id="dropzone-file" type="file" name="file" className="hidden" onChange={handleFileChange} required />
             </label>
-          </div> 
+          </div>
+
+          {fileName && (
+            <div className="flex items-center justify-center w-full pl-[25%] pr-[25%] mt-4 px-4">
+              <div className="flex items-center w-full max-w-xl">
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-300 block truncate">
+                    {fileName}
+                  </span>
+                </div>
+                <div className="w-32 ml-4">
+                  <progress className="progress w-full" value={uploadProgress} max="100"></progress>
+                </div>
+              </div>
+            </div>
+          )}
     
           <div className="flex items-center justify-center pt-8">
             <button type="submit" className="btn btn-outline">Upload</button>
           </div>
-
-          <div className="flex items-center justify-center pt-8">
-            <progress className="progress w-56" value={uploadProgress} max="100"></progress>
-          </div>
         </form>
+        <div id="popup-modal" className={`${showModal ? '' : 'hidden'} fixed inset-x-0 top-0 z-50 flex justify-center bg-opacity-50`}>
+          <div className="relative p-4 w-full max-w-md h-auto bg-white rounded-lg shadow dark:bg-gray-700 mt-4 mx-auto">
+            <div className="p-4 md:p-5 text-center">
+              <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">File Upload Successful!</h3>
+              <button onClick={handleModalClose} type="button" className="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+    </div>
     );
 };
 
