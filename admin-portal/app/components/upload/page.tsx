@@ -56,6 +56,7 @@ const UploadPage: NextPage = () => {
         if (fileInputRef.current) {
             fileInputRef.current.value = '';  // Reset file input
         }
+        setFile(null);
         setFileName('');  // Reset file name
     };
 
