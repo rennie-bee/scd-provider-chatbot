@@ -1,24 +1,55 @@
 'use client'
 
 import { NextPage } from 'next';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, DragEvent, ChangeEvent } from 'react';
 
 const UploadPage: NextPage = () => {
+    const [file, setFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState<string>('');
     const [showModal, setShowModal] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number>(0);
     const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
+    const [isDragOver, setIsDragOver] = useState(false);
     const formRef = useRef<HTMLFormElement>(null);
     const fileInputRef = useRef(null);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files ? event.target.files[0] : null;
-      if (file) {
-        setFileName(file.name);
+      const selectedFile = event.target.files ? event.target.files[0] : null;
+      if (selectedFile) {
+        processFile(selectedFile);
       }
       else {
         setFileName('');
       }
+    };
+
+    const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault(); // Prevent default behavior
+      setIsDragOver(true);
+    };
+    
+    const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setIsDragOver(false);
+    };
+    
+    const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setIsDragOver(false);
+
+      const droppedFile = e.dataTransfer.files[0];
+      if(droppedFile) {
+        processFile(droppedFile);
+      }
+      else {
+        setFileName('');
+      }
+    };
+
+    const processFile = (selectedFile: File) => {
+      console.log(selectedFile);
+      setFile(selectedFile);
+      setFileName(selectedFile.name);
     };
 
     const unselectFile = () => {
@@ -32,9 +63,10 @@ const UploadPage: NextPage = () => {
         event.preventDefault();
         setUploadSuccess(false);
       
-        const fileInput = document.getElementById('dropzone-file') as HTMLInputElement;
-        if (fileInput?.files?.[0]) {
-          const file = fileInput.files[0];
+        // const fileInput = document.getElementById('dropzone-file') as HTMLInputElement;
+        if (file) {
+          // const file = fileInput.files[0];
+          // console.log(file);
           const formData = new FormData();
           formData.append('file', file);
 
@@ -62,6 +94,9 @@ const UploadPage: NextPage = () => {
       
           xhr.send(formData);
         }
+        else {
+          console.error("No file selected");
+        }
     };
 
     const handleModalClose = () => {
@@ -77,7 +112,7 @@ const UploadPage: NextPage = () => {
     return (
       <div>
         <form ref={formRef} onSubmit={handleSubmit}>
-          <div className="flex items-center justify-center w-full pl-[25%] pr-[25%]">
+          <div onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} className="flex items-center justify-center w-full pl-[25%] pr-[25%]">
             <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
@@ -86,7 +121,7 @@ const UploadPage: NextPage = () => {
                 <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{'TXT, DOCX, PDF or XLSX (MAX 100MB)'}</p>
               </div>
-              <input ref={fileInputRef} id="dropzone-file" type="file" name="file" className="hidden" onChange={handleFileChange} required />
+              <input ref={fileInputRef} id="dropzone-file" type="file" name="file" className="hidden" onChange={handleFileChange} />
             </label>
           </div>
 
