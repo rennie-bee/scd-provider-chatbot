@@ -151,10 +151,10 @@ const UploadPage: NextPage = () => {
             <button type="submit" className="btn btn-outline">Upload</button>
           </div>
         </form>
-        {uploadSuccess && (
+        {showModal && uploadSuccess && (
           <>
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-40"></div>
-            <div id="popup-modal" className={`${showModal ? '' : 'hidden'} fixed inset-x-0 top-0 z-50 flex justify-center bg-opacity-50`}>
+            <div id="popup-modal" className="fixed inset-x-0 top-0 z-50 flex justify-center bg-opacity-50">
               <div className="relative p-4 w-full max-w-md h-auto bg-white rounded-lg shadow dark:bg-gray-700 mt-4 mx-auto border-2 border-black">
                 <div className="p-4 md:p-5 text-center">
                   <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">File Upload Successful!</h3>
