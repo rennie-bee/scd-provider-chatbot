@@ -104,6 +104,7 @@ const UploadPage: NextPage = () => {
         setShowModal(false); // Hide the modal
         setFileName(''); // Reset file name
         setUploadProgress(0); // Reset progress
+        setUploadSuccess(false);
         if (formRef.current) {
           formRef.current.reset(); // Reset the form
         }
@@ -150,16 +151,21 @@ const UploadPage: NextPage = () => {
             <button type="submit" className="btn btn-outline">Upload</button>
           </div>
         </form>
-        <div id="popup-modal" className={`${showModal ? '' : 'hidden'} fixed inset-x-0 top-0 z-50 flex justify-center bg-opacity-50`}>
-          <div className="relative p-4 w-full max-w-md h-auto bg-white rounded-lg shadow dark:bg-gray-700 mt-4 mx-auto">
-            <div className="p-4 md:p-5 text-center">
-              <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">File Upload Successful!</h3>
-              <button onClick={handleModalClose} type="button" className="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2">
-                Close
-              </button>
+        {uploadSuccess && (
+          <>
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-40"></div>
+            <div id="popup-modal" className={`${showModal ? '' : 'hidden'} fixed inset-x-0 top-0 z-50 flex justify-center bg-opacity-50`}>
+              <div className="relative p-4 w-full max-w-md h-auto bg-white rounded-lg shadow dark:bg-gray-700 mt-4 mx-auto border-2 border-black">
+                <div className="p-4 md:p-5 text-center">
+                  <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">File Upload Successful!</h3>
+                  <button onClick={handleModalClose} type="button" className="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2">
+                    Close
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+        </>
+        )}
     </div>
     );
 };
