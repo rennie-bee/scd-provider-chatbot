@@ -9,10 +9,23 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-community/netinfo": "11.1.0",
+    "@react-navigation/native": "^6.1.10",
+    "@react-navigation/stack": "^6.3.21",
     "expo": "~50.0.3",
+    "expo-file-system": "~16.0.6",
+    "expo-image-manipulator": "~11.8.0",
+    "expo-image-picker": "~14.7.1",
+    "expo-media-library": "~15.9.1",
     "expo-status-bar": "~1.11.1",
     "react": "18.2.0",
-    "react-native": "0.73.2"
+    "react-native": "0.73.2",
+    "react-native-gesture-handler": "~2.14.0",
+    "react-native-reanimated": "~3.6.2",
+    "react-native-svg": "14.1.0",
+    "react-navigation": "^5.0.0",
+    "stream-chat-expo": "^5.24.0",
+    "stream-chat-react-native": "^5.24.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
