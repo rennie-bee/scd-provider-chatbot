@@ -12,6 +12,7 @@ const UploadPage: NextPage = () => {
     const [isDragOver, setIsDragOver] = useState(false);
     const formRef = useRef<HTMLFormElement>(null);
     const fileInputRef = useRef(null);
+    const [modalMessage, setModalMessage] = useState('');
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       const selectedFile = event.target.files ? event.target.files[0] : null;
@@ -85,11 +86,12 @@ const UploadPage: NextPage = () => {
           xhr.onload = () => {
             if (xhr.status === 200) {
               console.log('File uploaded successfully');
-              setUploadSuccess(true);
-              setShowModal(true);
+              // setUploadSuccess(true);
+              handleUploadSuccess();
             } else {
               console.error('Error in file upload');
-              setUploadSuccess(false);
+              // setUploadSuccess(false);
+              handleUploadError('Error in file upload');
             }
           };
       
@@ -97,25 +99,39 @@ const UploadPage: NextPage = () => {
         }
         else {
           console.error("No file selected");
+          handleUploadError('No file selected');
         }
     };
 
     const handleModalClose = () => {
         setShowModal(false); // Hide the modal
         setFileName(''); // Reset file name
+        setFile(null); // Reset file
         setUploadProgress(0); // Reset progress
-        setUploadSuccess(false);
+        // setUploadSuccess(false);
         if (formRef.current) {
           formRef.current.reset(); // Reset the form
         }
+    };
+
+    const handleUploadSuccess = () => {
+      setModalMessage('File Upload Successful!');
+      setShowModal(true);
+    };
+    
+    const handleUploadError = (errorMessage:string) => {
+      setModalMessage(errorMessage);
+      setShowModal(true);
     };
       
 
     return (
       <div>
         <form ref={formRef} onSubmit={handleSubmit}>
+          {/* drag and drop zone */}
           <div onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} className="flex items-center justify-center w-full pl-[25%] pr-[25%]">
-            <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+            <label htmlFor="dropzone-file" className={`flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer ${
+    isDragOver ? 'border-zinc-500' : 'border-gray-300'} bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600`}>
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
                     <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
@@ -127,6 +143,7 @@ const UploadPage: NextPage = () => {
             </label>
           </div>
 
+          {/* file list and upload progress part */}
           {fileName && (
             <div className="flex items-center justify-center w-full pl-[25%] pr-[25%] mt-4 px-4">
               <div className="flex items-center w-full max-w-xl">
@@ -151,13 +168,15 @@ const UploadPage: NextPage = () => {
             <button type="submit" className="btn btn-outline">Upload</button>
           </div>
         </form>
-        {showModal && uploadSuccess && (
+
+        {/* pop up modal showing customized message */}
+        {showModal && (
           <>
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-40"></div>
             <div id="popup-modal" className="fixed inset-x-0 top-0 z-50 flex justify-center bg-opacity-50">
               <div className="relative p-4 w-full max-w-md h-auto bg-white rounded-lg shadow dark:bg-gray-700 mt-4 mx-auto border-2 border-black">
                 <div className="p-4 md:p-5 text-center">
-                  <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">File Upload Successful!</h3>
+                  <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">{modalMessage}</h3>
                   <button onClick={handleModalClose} type="button" className="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2">
                     Close
                   </button>
