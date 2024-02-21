@@ -36,7 +36,7 @@ export default function App() {
         <View style={styles.innerContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerText}>Chat</Text>
+            <Text style={styles.headerText}>Sickle Cell Disease Chat Assistant</Text>
             <TouchableOpacity style={styles.authIcon} onPress={handleAuthAction}>
               <Ionicons name="person-circle" size={24} color="black" />
             </TouchableOpacity>
