@@ -16,7 +16,7 @@ cd admin-portal
 npm install
 ```
 ## Running Next.js
-run the development server:
+Run the development server:
 ```bash
 npm run dev
 ```
