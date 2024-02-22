@@ -1,14 +1,14 @@
 'use client'
 
+import { getSignedURL } from '@/app/api/upload/route';
 import { NextPage } from 'next';
-import React, { useState, useRef, DragEvent, ChangeEvent } from 'react';
+import React, { useState, useRef, DragEvent } from 'react';
 
 const UploadPage: NextPage = () => {
     const [file, setFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState<string>('');
     const [showModal, setShowModal] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number>(0);
-    const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
     const [isDragOver, setIsDragOver] = useState(false);
     const formRef = useRef<HTMLFormElement>(null);
     const fileInputRef = useRef(null);
@@ -63,39 +63,54 @@ const UploadPage: NextPage = () => {
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        setUploadSuccess(false);
       
-        // const fileInput = document.getElementById('dropzone-file') as HTMLInputElement;
         if (file) {
-          // const file = fileInput.files[0];
-          // console.log(file);
-          const formData = new FormData();
-          formData.append('file', file);
+          const signedURLResult = await getSignedURL();
+          if(signedURLResult.failure !== undefined) {
+            console.error(signedURLResult.failure);
+            handleUploadError('Get pre-signed URL failed');
+            return;
+          }
 
-          const xhr = new XMLHttpRequest();
-      
-          xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const percent = (event.loaded / event.total) * 100;
-              setUploadProgress(Math.round(percent));
-            }
-          };
-      
-          xhr.open('POST', '/api/upload', true);
-      
-          xhr.onload = () => {
-            if (xhr.status === 200) {
-              console.log('File uploaded successfully');
-              // setUploadSuccess(true);
-              handleUploadSuccess();
-            } else {
-              console.error('Error in file upload');
-              // setUploadSuccess(false);
-              handleUploadError('Error in file upload');
-            }
-          };
-      
-          xhr.send(formData);
+          const { url } = signedURLResult.success;
+          console.log({url});
+
+          try {
+            // const formData = new FormData();
+            // formData.append('file', file);
+    
+            const xhr = new XMLHttpRequest();
+    
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percent = (event.loaded / event.total) * 100;
+                    setUploadProgress(Math.round(percent));
+                }
+            };
+    
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    console.log('File uploaded successfully');
+                    handleUploadSuccess();
+                } else {
+                    console.error('Error in file upload:', xhr.responseText);
+                    handleUploadError('Error in file upload');
+                }
+            };
+    
+            xhr.onerror = () => {
+                console.error('Error in file upload');
+                handleUploadError('Error in file upload');
+            };
+    
+            xhr.open('PUT', url, true);
+            xhr.setRequestHeader("Content-Type", file.type);
+            xhr.send(file);
+          }
+          catch (error) {
+            console.error('Error: ', error);
+            handleUploadError('Error in file upload');
+          }
         }
         else {
           console.error("No file selected");
@@ -108,7 +123,6 @@ const UploadPage: NextPage = () => {
         setFileName(''); // Reset file name
         setFile(null); // Reset file
         setUploadProgress(0); // Reset progress
-        // setUploadSuccess(false);
         if (formRef.current) {
           formRef.current.reset(); // Reset the form
         }

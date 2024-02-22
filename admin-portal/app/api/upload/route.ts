@@ -1,23 +1,30 @@
-import { writeFile } from 'fs/promises'
-import { NextRequest, NextResponse } from 'next/server'
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
-export async function POST(request: NextRequest) {
-  /*
-  const data = await request.formData()
-  const file: File | null = data.get('file') as unknown as File
+type SignedURLResponse = Promise<
+  { failure?: undefined; success: { url: string } }
+  | { failure: string; success?: undefined }
+>
 
-  if (!file) {
-    return NextResponse.json({ success: false })
-  }
+const s3Client = new S3Client({
+  region: process.env.AWS_BUCKET_REGION!,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+})
 
-  const bytes = await file.arrayBuffer()
-  const buffer = Buffer.from(bytes)
+export async function getSignedURL(): SignedURLResponse {
+    const putObjectCommand = new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: "test-file",
+    })
 
-  // With the file data in the buffer, you can do whatever you want with it.
-  // For this, we'll just write it to the filesystem in a new location
-  const path = `/tmp/${file.name}`
-  await writeFile(path, buffer)
-  console.log(`open ${path} to see the uploaded file`)
-  */
-  return NextResponse.json({ success: true })
+    const url = await getSignedUrl(
+      s3Client,
+      putObjectCommand,
+      { expiresIn: 360 } // 360 seconds
+    )
+
+    return {success: {url}}
 }
