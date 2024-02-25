@@ -65,7 +65,7 @@ const UploadPage: NextPage = () => {
         event.preventDefault();
       
         if (file) {
-          const signedURLResult = await getSignedURL();
+          const signedURLResult = await getSignedURL(file.name);
           if(signedURLResult.failure !== undefined) {
             console.error(signedURLResult.failure);
             handleUploadError('Get pre-signed URL failed');

@@ -9,17 +9,17 @@ type SignedURLResponse = Promise<
 >
 
 const s3Client = new S3Client({
-  region: "us-west-1",
+  region: process.env.NEXT_PUBLIC_AWS_BUCKET_REGION,
   credentials: {
-    accessKeyId: "AKIAYS2NRN2N2K6R2BFB",
-    secretAccessKey: "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",
+    accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY,
+    secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY,
   },
 })
 
-export async function getSignedURL(): SignedURLResponse {
+export async function getSignedURL(fileName: string): SignedURLResponse {
     const putObjectCommand = new PutObjectCommand({
-      Bucket: "uw-scd-data",
-      Key: "test-file",
+      Bucket: process.env.NEXT_PUBLIC_AWS_BUCKET_NAME,
+      Key: fileName,
     })
 
     const url = await getSignedUrl(
