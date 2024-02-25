@@ -1,3 +1,5 @@
+'User Server'
+
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
@@ -7,16 +9,16 @@ type SignedURLResponse = Promise<
 >
 
 const s3Client = new S3Client({
-  region: process.env.AWS_BUCKET_REGION!,
+  region: "us-west-1",
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId: "AKIAYS2NRN2N2K6R2BFB",
+    secretAccessKey: "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",
   },
 })
 
 export async function getSignedURL(): SignedURLResponse {
     const putObjectCommand = new PutObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME!,
+      Bucket: "uw-scd-data",
       Key: "test-file",
     })
 
