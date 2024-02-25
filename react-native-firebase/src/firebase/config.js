@@ -3,12 +3,12 @@ import '@firebase/auth';
 import '@firebase/firestore';
 
 const firebaseConfig = {
-//   apiKey: 'YOUR_KEY_HERE_AIzaSyAOWH',
-//   authDomain: 'your-auth-domain-b1234.firebaseapp.com',
-//   databaseURL: 'https://your-database-name.firebaseio.com',
+  apiKey: 'AIzaSyBUs7pA3UVTbBrwfWqnrUVNwSlYRZb2DPc',
+  authDomain: 'scd-chatbot.firebaseapp.com',
+  databaseURL: 'https://scd-chatbot-default-rtdb.firebaseio.com',
   projectId: 'scd-chatbot',
-//   storageBucket: 'your-project-id-1234.appspot.com',
-//   messagingSenderId: '12345-insert-yourse',
+  storageBucket: 'scd-chatbot.appspot.com',
+  messagingSenderId: '963935715708',
   appId: '1:963935715708:ios:835819d01bbc11b1a8a4f9',
 };
 
