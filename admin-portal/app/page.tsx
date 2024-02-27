@@ -1,5 +1,4 @@
-import Image from 'next/image'
-import UploadPage from './components/upload/page'
+import UploadPage from './upload/page'
 
 export default function Home() {
   return (
