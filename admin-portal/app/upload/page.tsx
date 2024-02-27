@@ -1,6 +1,6 @@
 'use client'
 
-import { getSignedURL } from '@/app/api/upload/route';
+import { getSignedURL } from '@/app/upload/getURL';
 import { NextPage } from 'next';
 import React, { useState, useRef, DragEvent } from 'react';
 
@@ -11,7 +11,7 @@ const UploadPage: NextPage = () => {
     const [uploadProgress, setUploadProgress] = useState<number>(0);
     const [isDragOver, setIsDragOver] = useState(false);
     const formRef = useRef<HTMLFormElement>(null);
-    const fileInputRef = useRef(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [modalMessage, setModalMessage] = useState('');
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,7 +65,7 @@ const UploadPage: NextPage = () => {
         event.preventDefault();
       
         if (file) {
-          const signedURLResult = await getSignedURL(file.name);
+          const signedURLResult = await getSignedURL(file);
           if(signedURLResult.failure !== undefined) {
             console.error(signedURLResult.failure);
             handleUploadError('Get pre-signed URL failed');
@@ -153,8 +153,8 @@ const UploadPage: NextPage = () => {
                 <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{'TXT, DOCX, PDF or XLSX (MAX 100MB)'}</p>
               </div>
-              <input ref={fileInputRef} id="dropzone-file" type="file" name="file" className="hidden" onChange={handleFileChange} />
             </label>
+            <input ref={fileInputRef} id="dropzone-file" type="file" name="file" className="hidden" onChange={handleFileChange} />
           </div>
 
           {/* file list and upload progress part */}
