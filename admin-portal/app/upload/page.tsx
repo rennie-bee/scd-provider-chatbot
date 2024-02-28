@@ -68,7 +68,7 @@ const UploadPage: NextPage = () => {
           const signedURLResult = await getSignedURL(file);
           if(signedURLResult.failure !== undefined) {
             console.error(signedURLResult.failure);
-            handleUploadError('Get pre-signed URL failed');
+            handleUploadError("File Upload Failed: " + signedURLResult.failure);
             return;
           }
 
@@ -94,13 +94,13 @@ const UploadPage: NextPage = () => {
                     handleUploadSuccess();
                 } else {
                     console.error('Error in file upload:', xhr.responseText);
-                    handleUploadError('Error in file upload');
+                    handleUploadError("File Upload Failed");
                 }
             };
     
             xhr.onerror = () => {
                 console.error('Error in file upload');
-                handleUploadError('Error in file upload');
+                handleUploadError("File Upload Failed");
             };
     
             xhr.open('PUT', url, true);
@@ -109,12 +109,12 @@ const UploadPage: NextPage = () => {
           }
           catch (error) {
             console.error('Error: ', error);
-            handleUploadError('Error in file upload');
+            handleUploadError("File Upload Failed");
           }
         }
         else {
           console.error("No file selected");
-          handleUploadError('No file selected');
+          handleUploadError('No File Selected');
         }
     };
 
@@ -129,7 +129,7 @@ const UploadPage: NextPage = () => {
     };
 
     const handleUploadSuccess = () => {
-      setModalMessage('File Upload Successful!');
+      setModalMessage('File Upload Successful');
       setShowModal(true);
     };
     
@@ -144,7 +144,7 @@ const UploadPage: NextPage = () => {
         <form ref={formRef} onSubmit={handleSubmit}>
           {/* drag and drop zone */}
           <div onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} className="flex items-center justify-center w-full pl-[25%] pr-[25%]">
-            <label htmlFor="dropzone-file" className={`flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer ${
+            <label htmlFor="dropzone-file" className={`flex flex-col items-center justify-center w-full h-80 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer ${
     isDragOver ? 'border-zinc-500' : 'border-gray-300'} bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600`}>
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
@@ -188,7 +188,7 @@ const UploadPage: NextPage = () => {
           <>
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-40"></div>
             <div id="popup-modal" className="fixed inset-x-0 top-0 z-50 flex justify-center bg-opacity-50">
-              <div className="relative p-4 w-full max-w-md h-auto bg-white rounded-lg shadow dark:bg-gray-700 mt-4 mx-auto border-2 border-black">
+              <div className="relative p-4 w-full max-w-md h-auto bg-white rounded-lg shadow dark:bg-gray-700 mt-4 mx-auto border-2 border-indigo-500/100">
                 <div className="p-4 md:p-5 text-center">
                   <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">{modalMessage}</h3>
                   <button onClick={handleModalClose} type="button" className="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2">

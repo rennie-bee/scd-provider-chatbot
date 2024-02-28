@@ -8,6 +8,15 @@ type SignedURLResponse = Promise<
   | { failure: string; success?: undefined }
 >
 
+const allowedFileTypes = [
+  "text/plain", // .txt
+  "application/pdf", //.pdf
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", //.docx
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" //.xlsx
+]
+
+const maxFileSize = 1048576 * 1000 // 100 MB
+
 const awsRegion = process.env.NEXT_PUBLIC_AWS_BUCKET_REGION;
 const awsAccessKeyId = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY;
 const awsSecretAccessKey = process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY;
@@ -28,6 +37,14 @@ const s3Config: S3ClientConfig = {
 const s3Client = new S3Client(s3Config);
 
 export async function getSignedURL(file: File): SignedURLResponse {
+    if(!allowedFileTypes.includes(file.type)) {
+      return {failure: "File Type Not Allowed"}
+    }
+
+    if(file.size > maxFileSize) {
+      return {failure: "File Size Too Large"}
+    }
+
     const putObjectCommand = new PutObjectCommand({
       Bucket: awsBucketName,
       Key: file.name,
