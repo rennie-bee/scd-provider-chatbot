@@ -1,0 +1,20 @@
+# unstructured 
+# libmagic 
+# python-magic 
+# python-magic-bin
+# langchain
+# faiss-cpu
+# sentence-transformers
+# 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
+langchain
+unstructured
+pdf2image
+pdfminer.six
+unstructured_inference
+pikepdf
+pypdf
+pinecone-client
+openai
+tiktoken
+langchain-openai
+pillow-heif
