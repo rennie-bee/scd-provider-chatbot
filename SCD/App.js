@@ -25,10 +25,34 @@ export default function App() {
   // Function to handle sending a message
   const handleSendMessage = () => {
     if (message.trim()) {
-      setMessages([...messages, message]); // Add new message to messages array
+      // trim the spaces in message data
+      const requestData = {
+        user_input: message.trim(),
+      };
+
+      // Use fetch to send the POST request
+      fetch('http://localhost:8080/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Success:', data);
+        if (data && data.response) {
+          setMessages([...messages, message, "Bot: " + data.response]); // Add user message and bot response, and display them
+        }
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
+
       setMessage(''); // Clear the message input after sending
     }
   };
+
 
   return (
     <SafeAreaView style={styles.container}>
