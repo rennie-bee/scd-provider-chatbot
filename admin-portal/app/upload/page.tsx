@@ -162,7 +162,7 @@ const UploadPage: NextPage = () => {
             <div className="flex items-center justify-center w-full pl-[25%] pr-[25%] mt-4 px-4">
               <div className="flex items-center w-full max-w-xl">
                 <div className="flex items-center flex-1 min-w-0">
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-300 truncate">
+                  <span className="text-sm font-medium text-gray-800 truncate">
                     {fileName}
                   </span>
                   <button type="button" onClick={unselectFile} className="ml-2">
@@ -188,10 +188,10 @@ const UploadPage: NextPage = () => {
           <>
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-40"></div>
             <div id="popup-modal" className="fixed inset-x-0 top-0 z-50 flex justify-center bg-opacity-50">
-              <div className="relative p-4 w-full max-w-md h-auto bg-white rounded-lg shadow dark:bg-gray-700 mt-4 mx-auto border-2 border-indigo-500/100">
+              <div className="relative p-4 w-full max-w-md h-auto bg-white rounded-lg shadow mt-4 mx-auto border-2 border-zinc-500/100">
                 <div className="p-4 md:p-5 text-center">
-                  <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">{modalMessage}</h3>
-                  <button onClick={handleModalClose} type="button" className="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2">
+                  <h3 className="mb-5 text-lg font-normal text-gray-500">{modalMessage}</h3>
+                  <button onClick={handleModalClose} type="button" className="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2">
                     Close
                   </button>
                 </div>
