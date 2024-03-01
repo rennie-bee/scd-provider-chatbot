@@ -25,10 +25,36 @@ export default function App() {
   // Function to handle sending a message
   const handleSendMessage = () => {
     if (message.trim()) {
-      setMessages([...messages, message]); // Add new message to messages array
-      setMessage(''); // Clear the message input after sending
+      // trim the spaces in users' input message
+      const requestData = {
+        user_input: message.trim(),
+      };
+
+      // Use React Native's built-in "fetch" feature to send the POST request
+      fetch('http://localhost:8080/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Success:', data);
+        if (data && data.response) {
+          // Add user input and response  from the chatbot into the array, and display them in the console
+          setMessages([...messages, message, "Bot: " + data.response]);
+        }
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
+
+      // Clear the message input after sending
+      setMessage(''); 
     }
   };
+
 
   return (
     <SafeAreaView style={styles.container}>
