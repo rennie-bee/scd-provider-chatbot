@@ -60,7 +60,7 @@ const UploadPage: NextPage = () => {
       console.log(selectedFile);
       if(!allowedFileTypes.includes(selectedFile.type)) {
         console.error("File type not allowed");
-        handleUploadError("File Type Not Allow");
+        handleUploadError("File Type Not Allowed");
         return;
       }
   
