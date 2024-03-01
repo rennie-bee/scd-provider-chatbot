@@ -4,6 +4,15 @@ import { getSignedURL } from '@/app/upload/getURL';
 import { NextPage } from 'next';
 import React, { useState, useRef, DragEvent } from 'react';
 
+const allowedFileTypes = [
+  "text/plain", // .txt
+  "application/pdf", //.pdf
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", //.docx
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" //.xlsx
+]
+
+const maxFileSize = 1048576 * 1000 // 100 MB
+
 const UploadPage: NextPage = () => {
     const [file, setFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState<string>('');
@@ -49,6 +58,18 @@ const UploadPage: NextPage = () => {
 
     const processFile = (selectedFile: File) => {
       console.log(selectedFile);
+      if(!allowedFileTypes.includes(selectedFile.type)) {
+        console.error("File type not allowed");
+        handleUploadError("File Type Not Allow");
+        return;
+      }
+  
+      if(selectedFile.size > maxFileSize) {
+        console.error("File size too large");
+        handleUploadError("File Size Too Large");
+        return;
+      }
+
       setFile(selectedFile);
       setFileName(selectedFile.name);
     };
@@ -68,7 +89,7 @@ const UploadPage: NextPage = () => {
           const signedURLResult = await getSignedURL(file);
           if(signedURLResult.failure !== undefined) {
             console.error(signedURLResult.failure);
-            handleUploadError("File Upload Failed: " + signedURLResult.failure);
+            handleUploadError("Get Pre-signed URL Failed");
             return;
           }
 
@@ -186,7 +207,7 @@ const UploadPage: NextPage = () => {
         {/* pop up modal showing customized message */}
         {showModal && (
           <>
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-40"></div>
+            <div className="fixed inset-0 bg-opacity-75 transition-opacity z-40"></div>
             <div id="popup-modal" className="fixed inset-x-0 top-0 z-50 flex justify-center bg-opacity-50">
               <div className="relative p-4 w-full max-w-md h-auto bg-white rounded-lg shadow mt-4 mx-auto border-2 border-zinc-500/100">
                 <div className="p-4 md:p-5 text-center">
@@ -197,7 +218,7 @@ const UploadPage: NextPage = () => {
                 </div>
               </div>
             </div>
-        </>
+          </>
         )}
     </div>
     );
