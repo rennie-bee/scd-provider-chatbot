@@ -2,7 +2,7 @@
 
 import { getSignedURL } from '@/app/upload/getURL';
 import { NextPage } from 'next';
-import React, { useState, useRef, DragEvent } from 'react';
+import React, { useState, useRef, useEffect} from 'react';
 
 const allowedFileTypes = [
   "text/plain", // .txt
@@ -17,11 +17,30 @@ const UploadPage: NextPage = () => {
     const [file, setFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState<string>('');
     const [showModal, setShowModal] = useState(false);
+    const [showProgressBar, setShowProgressBar] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number>(0);
     const [isDragOver, setIsDragOver] = useState(false);
     const formRef = useRef<HTMLFormElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [modalMessage, setModalMessage] = useState('');
+
+    useEffect(() => {
+        // Function to prevent default behavior for global drag events
+        const preventDefault = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+        };
+
+        // Add global event listeners
+        window.addEventListener('dragover', preventDefault);
+        window.addEventListener('drop', preventDefault);
+
+        // Remove event listeners on cleanup
+        return () => {
+            window.removeEventListener('dragover', preventDefault);
+            window.removeEventListener('drop', preventDefault);
+        };
+      }, []);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       const selectedFile = event.target.files ? event.target.files[0] : null;
@@ -33,26 +52,28 @@ const UploadPage: NextPage = () => {
       }
     };
 
-    const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    const handleDragOver = (e: DragEvent) => {
       e.preventDefault(); // Prevent default behavior
       setIsDragOver(true);
     };
     
-    const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    const handleDragLeave = (e: DragEvent) => {
       e.preventDefault();
       setIsDragOver(false);
     };
     
-    const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    const handleDrop = (e: DragEvent) => {
       e.preventDefault();
       setIsDragOver(false);
 
-      const droppedFile = e.dataTransfer.files[0];
-      if(droppedFile) {
-        processFile(droppedFile);
-      }
-      else {
-        setFileName('');
+      if(e.dataTransfer) {
+        const droppedFile = e.dataTransfer.files[0];
+        if(droppedFile) {
+          processFile(droppedFile);
+        }
+        else {
+          setFileName('');
+        }
       }
     };
 
@@ -101,6 +122,7 @@ const UploadPage: NextPage = () => {
             // formData.append('file', file);
     
             const xhr = new XMLHttpRequest();
+            setShowProgressBar(true);
     
             xhr.upload.onprogress = (event) => {
                 if (event.lengthComputable) {
@@ -144,6 +166,7 @@ const UploadPage: NextPage = () => {
         setFileName(''); // Reset file name
         setFile(null); // Reset file
         setUploadProgress(0); // Reset progress
+        setShowProgressBar(false);
         if (formRef.current) {
           formRef.current.reset(); // Reset the form
         }
@@ -179,10 +202,9 @@ const UploadPage: NextPage = () => {
           </div>
 
           {/* file list and upload progress part */}
-          {fileName && (
-            <div className="flex items-center justify-center w-full pl-[25%] pr-[25%] mt-4 px-4">
-              <div className="flex items-center w-full max-w-xl">
-                <div className="flex items-center flex-1 min-w-0">
+            {fileName && (
+              <div className={`flex items-center justify-center w-full pl-[25%] pr-[25%] mt-4 px-4 ${showProgressBar ? 'justify-between' : 'justify-center'}`}>
+                <div className={`flex items-center flex-1 ${showProgressBar ? 'justify-start' : 'justify-center'}`}>
                   <span className="text-sm font-medium text-gray-800 truncate">
                     {fileName}
                   </span>
@@ -192,12 +214,14 @@ const UploadPage: NextPage = () => {
                     </svg>
                   </button>
                 </div>
-                <div className="w-32 ml-4">
-                  <progress className="progress w-full" value={uploadProgress} max="100"></progress>
-                </div>
+                {showProgressBar && (
+                  <div className="w-32">
+                    <progress className="progress w-full" value={uploadProgress} max="100"></progress>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            )}
+
     
           <div className="flex items-center justify-center pt-8">
             <button type="submit" className="btn btn-outline">Upload</button>
