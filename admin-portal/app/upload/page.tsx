@@ -52,17 +52,17 @@ const UploadPage: NextPage = () => {
       }
     };
 
-    const handleDragOver = (e: DragEvent) => {
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault(); // Prevent default behavior
       setIsDragOver(true);
     };
     
-    const handleDragLeave = (e: DragEvent) => {
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       setIsDragOver(false);
     };
     
-    const handleDrop = (e: DragEvent) => {
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       setIsDragOver(false);
 
