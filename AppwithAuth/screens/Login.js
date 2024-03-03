@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Alert, TextInput, Button, StyleSheet, ScrollView } from 'react-native';
 import { initializeApp } from '@firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from '@firebase/auth';
 import { useNavigation } from '@react-navigation/native';
@@ -51,20 +51,18 @@ const AuthScreen = ({ email, setEmail, password, setPassword, isLogin, setIsLogi
 }
 
 
-const AuthenticatedScreen = ({ user, handleAuthentication }) => {
-    const navigation = useNavigation()
-    const gotoChat = () => {
-        navigation.navigate('Chat')
-    }
-  return (
-    <View style={styles.authContainer}>
-      <Text style={styles.title}>Welcome</Text>
-      <Text style={styles.emailText}>{user.email}</Text>
-      <Button title="Continue" onPress={gotoChat} color="#e74c3c" />
-      <Button title="Logout" onPress={handleAuthentication} color="#e74c3c" />
-    </View>
-  );
-};
+// const AuthenticatedScreen = ({ user, handleAuthentication }) => {
+//     const navigation = useNavigation()
+//     const gotoChat = () => {
+//         navigation.navigate('Chat')
+//     }
+//   return (
+//     <View style={styles.authContainer}>
+//       <Button title="Logout" onPress={handleAuthentication} color="#e74c3c" />
+//     </View>
+//   );
+// };
+
 export default Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -80,35 +78,42 @@ export default Login = () => {
     return () => unsubscribe();
   }, [auth]);
 
+  const navigation = useNavigation()
+  const gotoChat = () => {
+      navigation.navigate('Chat')
+  }
   
   const handleAuthentication = async () => {
     try {
-      if (user) {
-        // If user is already authenticated, log out
-        console.log('User logged out successfully!');
-        await signOut(auth);
+      if (isLogin) {
+        // Sign in
+        await signInWithEmailAndPassword(auth, email, password);
+        console.log('User signed in successfully!');
       } else {
-        // Sign in or sign up
-        if (isLogin) {
-          // Sign in
-          await signInWithEmailAndPassword(auth, email, password);
-          console.log('User signed in successfully!');
-        } else {
-          // Sign up
-          await createUserWithEmailAndPassword(auth, email, password);
-          console.log('User created successfully!');
-        }
+        // Sign up
+        await createUserWithEmailAndPassword(auth, email, password);
+        console.log('User created successfully!');
       }
+      gotoChat();
     } catch (error) {
-      console.error('Authentication error:', error.message);
+      Alert.alert('Authentication error:', error.message);
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {user ? (
+      {!user ? (
         // Show user's email if user is authenticated
-        <AuthenticatedScreen user={user} handleAuthentication={handleAuthentication} />
+        // <AuthenticatedScreen user={user} handleAuthentication={handleAuthentication} />
+        <AuthScreen
+          email={email}
+          setEmail={setEmail}
+          password={password}
+          setPassword={setPassword}
+          isLogin={isLogin}
+          setIsLogin={setIsLogin}
+          handleAuthentication={handleAuthentication}
+        />
       ) : (
         // Show sign-in or sign-up form if user is not authenticated
         <AuthScreen
