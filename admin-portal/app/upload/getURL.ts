@@ -17,6 +17,7 @@ const allowedFileTypes = [
 
 const maxFileSize = 1048576 * 1000 // 100 MB
 
+/* environment varibales */
 const awsRegion = process.env.NEXT_PUBLIC_AWS_BUCKET_REGION;
 const awsAccessKeyId = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY;
 const awsSecretAccessKey = process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY;
@@ -38,11 +39,11 @@ const s3Client = new S3Client(s3Config);
 
 export async function getSignedURL(file: File): SignedURLResponse {
     if(!allowedFileTypes.includes(file.type)) {
-      return {failure: "File Type Not Allowed"}
+      return {failure: "File type not allowed"}
     }
 
     if(file.size > maxFileSize) {
-      return {failure: "File Size Too Large"}
+      return {failure: "File size too large"}
     }
 
     const putObjectCommand = new PutObjectCommand({

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StatusBar, StyleSheet, Text, View, SafeAreaView, TouchableOpacity, Alert, TextInput, TouchableWithoutFeedback, Keyboard, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // Ensure @expo/vector-icons is installed
 
-export default function App() {
+export default function Chat () {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]); // Array to hold messages
 

@@ -2,17 +2,45 @@
 
 import { getSignedURL } from '@/app/upload/getURL';
 import { NextPage } from 'next';
-import React, { useState, useRef, DragEvent } from 'react';
+import React, { useState, useRef, useEffect} from 'react';
+
+const allowedFileTypes = [
+  "text/plain", // .txt
+  "application/pdf", //.pdf
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", //.docx
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" //.xlsx
+]
+
+const maxFileSize = 1048576 * 1000 // 100 MB
 
 const UploadPage: NextPage = () => {
     const [file, setFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState<string>('');
     const [showModal, setShowModal] = useState(false);
+    const [showProgressBar, setShowProgressBar] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number>(0);
     const [isDragOver, setIsDragOver] = useState(false);
     const formRef = useRef<HTMLFormElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [modalMessage, setModalMessage] = useState('');
+
+    useEffect(() => {
+        // Function to prevent default behavior for global drag events
+        const preventDefault = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+        };
+
+        // Add global event listeners
+        window.addEventListener('dragover', preventDefault);
+        window.addEventListener('drop', preventDefault);
+
+        // Remove event listeners on cleanup
+        return () => {
+            window.removeEventListener('dragover', preventDefault);
+            window.removeEventListener('drop', preventDefault);
+        };
+      }, []);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       const selectedFile = event.target.files ? event.target.files[0] : null;
@@ -24,31 +52,45 @@ const UploadPage: NextPage = () => {
       }
     };
 
-    const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault(); // Prevent default behavior
       setIsDragOver(true);
     };
     
-    const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       setIsDragOver(false);
     };
     
-    const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       setIsDragOver(false);
 
-      const droppedFile = e.dataTransfer.files[0];
-      if(droppedFile) {
-        processFile(droppedFile);
-      }
-      else {
-        setFileName('');
+      if(e.dataTransfer) {
+        const droppedFile = e.dataTransfer.files[0];
+        if(droppedFile) {
+          processFile(droppedFile);
+        }
+        else {
+          setFileName('');
+        }
       }
     };
 
     const processFile = (selectedFile: File) => {
       console.log(selectedFile);
+      if(!allowedFileTypes.includes(selectedFile.type)) {
+        console.error("File type not allowed");
+        handleUploadError("File Type Not Allowed");
+        return;
+      }
+  
+      if(selectedFile.size > maxFileSize) {
+        console.error("File size too large");
+        handleUploadError("File Size Too Large");
+        return;
+      }
+
       setFile(selectedFile);
       setFileName(selectedFile.name);
     };
@@ -68,7 +110,7 @@ const UploadPage: NextPage = () => {
           const signedURLResult = await getSignedURL(file);
           if(signedURLResult.failure !== undefined) {
             console.error(signedURLResult.failure);
-            handleUploadError("File Upload Failed: " + signedURLResult.failure);
+            handleUploadError("Get Pre-signed URL Failed");
             return;
           }
 
@@ -80,6 +122,7 @@ const UploadPage: NextPage = () => {
             // formData.append('file', file);
     
             const xhr = new XMLHttpRequest();
+            setShowProgressBar(true);
     
             xhr.upload.onprogress = (event) => {
                 if (event.lengthComputable) {
@@ -123,6 +166,7 @@ const UploadPage: NextPage = () => {
         setFileName(''); // Reset file name
         setFile(null); // Reset file
         setUploadProgress(0); // Reset progress
+        setShowProgressBar(false);
         if (formRef.current) {
           formRef.current.reset(); // Reset the form
         }
@@ -158,10 +202,9 @@ const UploadPage: NextPage = () => {
           </div>
 
           {/* file list and upload progress part */}
-          {fileName && (
-            <div className="flex items-center justify-center w-full pl-[25%] pr-[25%] mt-4 px-4">
-              <div className="flex items-center w-full max-w-xl">
-                <div className="flex items-center flex-1 min-w-0">
+            {fileName && (
+              <div className={`flex items-center justify-center w-full pl-[25%] pr-[25%] mt-4 px-4 ${showProgressBar ? 'justify-between' : 'justify-center'}`}>
+                <div className={`flex items-center flex-1 ${showProgressBar ? 'justify-start' : 'justify-center'}`}>
                   <span className="text-sm font-medium text-gray-800 truncate">
                     {fileName}
                   </span>
@@ -171,12 +214,14 @@ const UploadPage: NextPage = () => {
                     </svg>
                   </button>
                 </div>
-                <div className="w-32 ml-4">
-                  <progress className="progress w-full" value={uploadProgress} max="100"></progress>
-                </div>
+                {showProgressBar && (
+                  <div className="w-32">
+                    <progress className="progress w-full" value={uploadProgress} max="100"></progress>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            )}
+
     
           <div className="flex items-center justify-center pt-8">
             <button type="submit" className="btn btn-outline">Upload</button>
@@ -186,7 +231,7 @@ const UploadPage: NextPage = () => {
         {/* pop up modal showing customized message */}
         {showModal && (
           <>
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-40"></div>
+            <div className="fixed inset-0 bg-opacity-75 transition-opacity z-40"></div>
             <div id="popup-modal" className="fixed inset-x-0 top-0 z-50 flex justify-center bg-opacity-50">
               <div className="relative p-4 w-full max-w-md h-auto bg-white rounded-lg shadow mt-4 mx-auto border-2 border-zinc-500/100">
                 <div className="p-4 md:p-5 text-center">
@@ -197,7 +242,7 @@ const UploadPage: NextPage = () => {
                 </div>
               </div>
             </div>
-        </>
+          </>
         )}
     </div>
     );
