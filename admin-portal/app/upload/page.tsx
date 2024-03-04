@@ -4,26 +4,30 @@ import { getSignedURL } from '@/app/upload/getURL';
 import { NextPage } from 'next';
 import React, { useState, useRef, useEffect} from 'react';
 
+// Allowed file types for the upload
 const allowedFileTypes = [
-  "text/plain", // .txt
-  "application/pdf", //.pdf
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", //.docx
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" //.xlsx
+  "text/plain", // .txt files
+  "application/pdf", //.pdf files
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", //.docx files
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" //.xlsx files
 ]
 
-const maxFileSize = 1048576 * 1000 // 100 MB
+const maxFileSize = 1048576 * 1000 // Maximum file size limit (100 MB)
 
+// React functional component for the upload page
 const UploadPage: NextPage = () => {
-    const [file, setFile] = useState<File | null>(null);
-    const [fileName, setFileName] = useState<string>('');
-    const [showModal, setShowModal] = useState(false);
-    const [showProgressBar, setShowProgressBar] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState<number>(0);
-    const [isDragOver, setIsDragOver] = useState(false);
-    const formRef = useRef<HTMLFormElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const [modalMessage, setModalMessage] = useState('');
+  // React state hooks for various functionalities
+    const [file, setFile] = useState<File | null>(null); // State for the selected file
+    const [fileName, setFileName] = useState<string>(''); // State for the file name
+    const [showModal, setShowModal] = useState(false); // State to toggle the modal
+    const [showProgressBar, setShowProgressBar] = useState(false); // State to toggle the progress bar
+    const [uploadProgress, setUploadProgress] = useState<number>(0); // State to track upload progress
+    const [isDragOver, setIsDragOver] = useState(false); // State to handle drag-over styling
+    const formRef = useRef<HTMLFormElement>(null); // Ref for the form element
+    const fileInputRef = useRef<HTMLInputElement>(null); // Ref for the file input element
+    const [modalMessage, setModalMessage] = useState('');// State for the modal message
 
+    // Effect hook to handle global drag events
     useEffect(() => {
         // Function to prevent default behavior for global drag events
         const preventDefault = (e: DragEvent) => {
@@ -31,52 +35,57 @@ const UploadPage: NextPage = () => {
             e.stopPropagation();
         };
 
-        // Add global event listeners
+        // Add global event listeners for dragover and drop
         window.addEventListener('dragover', preventDefault);
         window.addEventListener('drop', preventDefault);
 
-        // Remove event listeners on cleanup
+        // Cleanup function to remove event listeners
         return () => {
             window.removeEventListener('dragover', preventDefault);
             window.removeEventListener('drop', preventDefault);
         };
       }, []);
-
+    
+    // Function to handle file selection
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       const selectedFile = event.target.files ? event.target.files[0] : null;
       if (selectedFile) {
-        processFile(selectedFile);
+        processFile(selectedFile); // Process the selected file
       }
       else {
-        setFileName('');
+        setFileName(''); // Reset file name if no file is selected
       }
     };
-
+    
+     // Function to handle drag over event
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault(); // Prevent default behavior
-      setIsDragOver(true);
+      setIsDragOver(true); // Set drag over state to true
     };
     
+    // Function to handle drag leave event
     const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
-      setIsDragOver(false);
+      setIsDragOver(false); // Set drag over state to false
     };
     
+    // Function to handle file drop event
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
-      setIsDragOver(false);
+      setIsDragOver(false); // Set drag over state to false
 
       if(e.dataTransfer) {
         const droppedFile = e.dataTransfer.files[0];
         if(droppedFile) {
-          processFile(droppedFile);
+          processFile(droppedFile); // Process the dropped file
         }
         else {
-          setFileName('');
+          setFileName(''); // Reset file name if no file is dropped
         }
       }
     };
 
+    // Function to process the selected or dropped file
     const processFile = (selectedFile: File) => {
       console.log(selectedFile);
       if(!allowedFileTypes.includes(selectedFile.type)) {
@@ -91,99 +100,107 @@ const UploadPage: NextPage = () => {
         return;
       }
 
-      setFile(selectedFile);
-      setFileName(selectedFile.name);
+      setFile(selectedFile); // Set the file state
+      setFileName(selectedFile.name); // Set the file name state
     };
 
+    // Function to unselect the file
     const unselectFile = () => {
         if (fileInputRef.current) {
             fileInputRef.current.value = '';  // Reset file input
         }
-        setFile(null);
-        setFileName('');  // Reset file name
+        setFile(null); // Reset file state
+        setFileName('');  // Reset file name state
     };
 
+    // Function to handle form submit
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+        event.preventDefault(); // Prevent default form submission behavior
       
         if (file) {
-          const signedURLResult = await getSignedURL(file);
+          const signedURLResult = await getSignedURL(file); // Get signed URL for file upload
           if(signedURLResult.failure !== undefined) {
             console.error(signedURLResult.failure);
             handleUploadError("Get Pre-signed URL Failed");
             return;
           }
 
-          const { url } = signedURLResult.success;
+          const { url } = signedURLResult.success; // Extract URL from the result
           console.log({url});
 
           try {
-            // const formData = new FormData();
-            // formData.append('file', file);
-    
+            // XMLHttpRequest to upload the file
             const xhr = new XMLHttpRequest();
-            setShowProgressBar(true);
-    
+            setShowProgressBar(true); // Show the progress bar
+            
+            // Event listener for upload progress
             xhr.upload.onprogress = (event) => {
                 if (event.lengthComputable) {
                     const percent = (event.loaded / event.total) * 100;
-                    setUploadProgress(Math.round(percent));
+                    setUploadProgress(Math.round(percent)); // Set upload progress
                 }
             };
-    
+            
+            // Event listener for successful upload
             xhr.onload = () => {
                 if (xhr.status === 200) {
                     console.log('File uploaded successfully');
-                    handleUploadSuccess();
+                    handleUploadSuccess(); // Handle successful upload
                 } else {
                     console.error('Error in file upload:', xhr.responseText);
-                    handleUploadError("File Upload Failed");
+                    handleUploadError("File Upload Failed"); // Handle upload error
                 }
             };
-    
+            
+            // Event listener for upload error
             xhr.onerror = () => {
                 console.error('Error in file upload');
-                handleUploadError("File Upload Failed");
+                handleUploadError("File Upload Failed"); // Handle upload error
             };
-    
+
+            // Configure and send the XMLHttpRequest
             xhr.open('PUT', url, true);
             xhr.setRequestHeader("Content-Type", file.type);
             xhr.send(file);
           }
           catch (error) {
             console.error('Error: ', error);
-            handleUploadError("File Upload Failed");
+            handleUploadError("File Upload Failed"); // Handle upload error
           }
         }
         else {
           console.error("No file selected");
-          handleUploadError('No File Selected');
+          handleUploadError('No File Selected'); // Handle error when no file is selected
         }
     };
 
+    // Function to close the modal
     const handleModalClose = () => {
         setShowModal(false); // Hide the modal
         setFileName(''); // Reset file name
         setFile(null); // Reset file
-        setUploadProgress(0); // Reset progress
-        setShowProgressBar(false);
+        setUploadProgress(0); // Reset upload progress
+        setShowProgressBar(false); // Hide progress bar
         if (formRef.current) {
           formRef.current.reset(); // Reset the form
         }
     };
-
+    
+    // Function to handle successful upload
     const handleUploadSuccess = () => {
       setModalMessage('File Upload Successful');
-      setShowModal(true);
+      setShowModal(true); // Show the modal with success message
     };
     
+    // Function to handle upload error with a custom message
     const handleUploadError = (errorMessage:string) => {
       setModalMessage(errorMessage);
-      setShowModal(true);
+      setShowModal(true); // Show the modal with error message
     };
       
 
     return (
+      // JSX for rendering the upload page
       <div>
         <form ref={formRef} onSubmit={handleSubmit}>
           {/* drag and drop zone */}
