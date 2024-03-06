@@ -123,13 +123,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
-    backgroundColor: '#FAEED1', // Secondary color for the footer background
+    backgroundColor: '#dce1e1', // Secondary color for the footer background
   },
   input: {
     flex: 1,
     height: 40,
-    backgroundColor: '#DED0B6', // Accent color for the input background
-    borderColor: '#B2A59B', // Accent color for input border
+    backgroundColor: '#bcc3c3', // Accent color for the input background
+    borderColor: '#9faaab', // Accent color for input border
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 10,
