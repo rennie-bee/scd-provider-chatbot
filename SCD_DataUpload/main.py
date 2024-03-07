@@ -13,6 +13,8 @@ import string
 from tqdm.notebook import tqdm
 from pinecone import Pinecone, ServerlessSpec
 import argparse
+from util import scd_utils
+
 # import boto3
 
 # # Initialize the S3 client
@@ -62,16 +64,19 @@ index_name = 'scd001' #args.index_name
 namespace = 'ns001' #args.namespace
 genre = 'scd' #args.genre
 
-loader = TextLoader(file_path)
-text = loader.load()
-text_page_content = text[0].page_content
+doc_type = file_path.split('.')[-1]
 
-# if doc_type == .PDF:
-#     loader = UnstructuredPDFLoader(file_name)
-#     text = loader.load()
-# if doc_type == .TXT:
-#     loader = TextLoader(file_name)
-#     text = loader.load()
+if doc_type == scd_utils.DocumentType.pdf.name:
+    loader = UnstructuredPDFLoader(file_path)
+    text = loader.load()
+    print(text)
+
+if doc_type == scd_utils.DocumentType.txt.name:
+    loader = TextLoader(file_path)
+    text = loader.load()
+    text_page_content = text[0].page_content
+    
+print(doc_typye)
 
 # Explicitly convert text to string
 text_page_content = str(text_page_content)

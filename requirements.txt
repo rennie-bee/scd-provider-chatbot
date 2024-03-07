@@ -5,7 +5,6 @@
 # langchain
 # faiss-cpu
 # sentence-transformers
-# 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
 langchain
 unstructured
 pdf2image
