@@ -49,16 +49,16 @@ const styles = StyleSheet.create({
     maxWidth: '70%',
   },
   sentMessage: {
-    backgroundColor: '#607274', // Primary Color for sent messages
+    backgroundColor: '#199988', // Primary Color for sent messages
     color: '#FAEED1', // Secondary Color for text
   },
   receivedMessage: {
-    backgroundColor: '#B2A59B', // Accent Color 2 for received messages
+    backgroundColor: '#e9edee', // Accent Color 2 for received messages
     color: '#FAEED1', // Secondary Color for text
   },
   // Timestamp and other styles...
   timestamp: {
-    color: '#DED0B6', // Accent Color 1
+    color: '#979a9b', // Accent Color 1
   },
 });
 
