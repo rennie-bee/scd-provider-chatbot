@@ -69,17 +69,17 @@ doc_type = file_path.split('.')[-1]
 if doc_type == scd_utils.DocumentType.pdf.name:
     loader = UnstructuredPDFLoader(file_path)
     text = loader.load()
-    print(text)
+    text_page_content = text[0].page_content
 
 if doc_type == scd_utils.DocumentType.txt.name:
     loader = TextLoader(file_path)
     text = loader.load()
     text_page_content = text[0].page_content
-    
+
 print(doc_typye)
 
 # Explicitly convert text to string
-text_page_content = str(text_page_content)
+text_page_content_str = str(text_page_content)
 
 # Create a RecursiveCharacterTextSplitter instance
 splitter = RecursiveCharacterTextSplitter(separators=['\n\n', '\n', '.', ','],
@@ -87,7 +87,7 @@ splitter = RecursiveCharacterTextSplitter(separators=['\n\n', '\n', '.', ','],
         chunk_overlap=50)
 
 # Use the splitter's method to split text into chunks
-text_chunks = splitter.split_text(text_page_content)
+text_chunks = splitter.split_text(text_page_content_str)
 
 # Convert the list of texts into a DataFrame
 df = pd.DataFrame(text_chunks, columns=['text'])
