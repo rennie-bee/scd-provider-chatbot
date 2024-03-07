@@ -38,18 +38,18 @@ const styles = StyleSheet.create({
   header: {
     height: 60,
     width: '100%',
-    backgroundColor: '#DED0B6', // Accent Color 1
+    backgroundColor: '#e9edee', // Accent Color 1
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#B2A59B', // Accent Color 2
+    borderBottomColor: '#d2d7d9', // Accent Color 2
   },
   headerText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#607274', // Primary Color
+    color: '#199988', // Primary Color
   },
 });
 

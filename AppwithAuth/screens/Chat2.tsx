@@ -74,7 +74,7 @@ export default function Chat2() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAEED1', // Adjusted based on your color scheme
+    backgroundColor: '#dfe4e4', // Adjusted based on your color scheme
   },
 });
 

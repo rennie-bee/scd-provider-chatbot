@@ -12,7 +12,7 @@ git clone https://github.com/rennie-bee/scd-provider-chatbot.git
 3. Navigate to the server directory:
 ```bash
 cd scd-provider-chatbot
-cd server
+cd flask-server
 ```
 
 4. Install the required packages:
