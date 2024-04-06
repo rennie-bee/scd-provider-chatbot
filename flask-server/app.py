@@ -23,7 +23,7 @@ def chat():
     pass
 
 # End user's chat
-@app.route('/chat/<str:username/end', Methods=['POST'])
+@app.route('/chat/<str:username/end', methods=['POST'])
 def end_chat():
     pass
 
@@ -54,7 +54,7 @@ def create_user_profile():
     pass
 
 # Update a user profile
-@app.route('/profile/<str:username>', Methods=['PUT'])
+@app.route('/profile/<str:username>', methods=['PUT'])
 def update_user_profile():
     pass
 
