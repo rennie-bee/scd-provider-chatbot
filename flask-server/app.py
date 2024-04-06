@@ -19,12 +19,12 @@ def start_chat():
     return jsonify({'response': response})
 
 # Handle in-progress user's chat
-@app.route('/chat/<str:username/<int:session_id>', methods=['POST'])
+@app.route('/chat/<str:username>/<int:session_id>', methods=['POST'])
 def chat():
     pass
 
 # End user's chat
-@app.route('/chat/<str:username/end_session', methods=['POST'])
+@app.route('/chat/<str:username>/end_session', methods=['POST'])
 def end_chat():
     pass
 
