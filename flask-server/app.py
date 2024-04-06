@@ -7,7 +7,7 @@ def index():
     return render_template("index.html")
 
 # Start user's chat
-@app.route('/chat/<str:username>/start', methods=['POST'])
+@app.route('/chat/<str:username>/start_session', methods=['POST'])
 def start_chat():
     data = request.json
     user_input = data.get('user_input', '')
@@ -23,7 +23,7 @@ def chat():
     pass
 
 # End user's chat
-@app.route('/chat/<str:username/end', methods=['POST'])
+@app.route('/chat/<str:username/end_session', methods=['POST'])
 def end_chat():
     pass
 
