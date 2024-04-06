@@ -6,8 +6,9 @@ app = Flask(__name__)
 def index():
     return render_template("index.html")
 
-@app.route('/chat', methods=['POST'])
-def chat():
+# Start user's chat
+@app.route('/chat/<str:username>/start', methods=['POST'])
+def start_chat():
     data = request.json
     user_input = data.get('user_input', '')
     
@@ -16,6 +17,15 @@ def chat():
 
     response = simple_chatbot_logic(user_input)
     return jsonify({'response': response})
+
+@app.route('/chat/<str:username/<int:session_id>', methods=['POST'])
+def chat():
+    pass
+
+# End user's chat
+@app.route('/chat/<str:username/end', Methods=['POST'])
+def end_chat():
+    pass
 
 def simple_chatbot_logic(user_input):
     """
@@ -32,6 +42,26 @@ def simple_chatbot_logic(user_input):
         return "Sickle cell disease (SCD) and its variants are genetic disorders resulting from the presence of a mutated form of hemoglobin, hemoglobin S (HbS). The most common form of SCD found in North America is homozygous HbS disease (HbSS), an autosomal recessive disorder first described by Herrick in 1910. SCD causes significant morbidity and mortality, particularly in people of African and Mediterranean ancestry. Morbidity, frequency of crisis, degree of anemia, and the organ systems involved vary considerably from individual to individual."
     else:
         return "I'm not sure how to respond to that. Can you try asking something else?"
+
+# Get user's chat history
+@app.route('/history/<str:username>', methods=['GET'])
+def get_history():
+    pass
+
+# Add a user profile
+@app.route('/profile/', methods=['POST'])
+def create_user_profile():
+    pass
+
+# Update a user profile
+@app.route('/profile/<str:username>', Methods=['PUT'])
+def update_user_profile():
+    pass
+
+# FAQ
+@app.route('/faq', methods=['PUT'])
+def handle_faq():
+    pass
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
