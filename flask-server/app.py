@@ -24,7 +24,7 @@ def chat():
     pass
 
 # End user's chat
-@app.route('/chat/<str:username>/end_session', methods=['POST'])
+@app.route('/chat/<str:username>/<int:session_id>/end_session', methods=['POST'])
 def end_chat():
     pass
 
