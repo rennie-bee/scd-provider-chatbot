@@ -160,6 +160,8 @@ def upsert_vector_embeddings_to_pinecone(text_embeddings, genre, filename):
 
 # Apply preprocessing
 df['text_preprocessed'] = df['text'].apply(preprocess_text)
+# print(df.head())
+# print(heda)
 upsert_vector_embeddings_to_pinecone(df['text_preprocessed'],genre,file_name)
 print("upsert_vector_embeddings_to_pinecone successful")
 # To update vales in pinecone db
