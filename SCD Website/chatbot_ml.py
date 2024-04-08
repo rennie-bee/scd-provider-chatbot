@@ -399,8 +399,8 @@ class Head_Agent:
 def main():
     st.title("SCD Chatbot")
     # Set the OpenAI and Pinecone keys
-    openai_key = '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'
-    pinecone_key = 'bd8f871a-819e-42c8-a6ac-81c14948fefd'#'97497599-5ea9-4b33-ac6b-9f04930ad988'
+    openai_key = 'OpenAI Key'
+    pinecone_key = "pinecone key"#'bd8f871a-819e-42c8-a6ac-81c14948fefd'#'97497599-5ea9-4b33-ac6b-9f04930ad988'
     pinecone_index_name = 'scd001'
     
     # Initialize the Head_Agent
