@@ -3,3 +3,4 @@
 
 #virtual environment
 env/
+SCD_DataUpload/util/__pycache__
