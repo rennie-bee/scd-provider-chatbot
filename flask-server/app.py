@@ -23,11 +23,6 @@ def chat():
     response = simple_chatbot_logic(user_input)
     return jsonify({'response': response})
 
-# Handle in-progress user's chat
-@app.route('/chat/<str:username>/<int:session_id>', methods=['POST'])
-def chat(username, session_id):
-    pass
-
 # End user's chat
 @app.route('/chat/<str:username>/<int:session_id>/end_session', methods=['POST'])
 def end_chat(username, session_id):
