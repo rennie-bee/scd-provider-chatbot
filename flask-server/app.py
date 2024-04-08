@@ -8,7 +8,7 @@ def index():
 
 # Start user's chat
 @app.route('/chat/<str:username>/start_session', methods=['POST'])
-def start_chat():
+def start_chat(username):
     data = request.json
     user_input = data.get('user_input', '')
     
@@ -20,12 +20,12 @@ def start_chat():
 
 # Handle in-progress user's chat
 @app.route('/chat/<str:username>/<int:session_id>', methods=['POST'])
-def chat():
+def chat(username, session_id):
     pass
 
 # End user's chat
 @app.route('/chat/<str:username>/<int:session_id>/end_session', methods=['POST'])
-def end_chat():
+def end_chat(username, session_id):
     pass
 
 def simple_chatbot_logic(user_input):
@@ -44,24 +44,29 @@ def simple_chatbot_logic(user_input):
     else:
         return "I'm not sure how to respond to that. Can you try asking something else?"
 
-# Get user's chat history
-@app.route('/history/<str:username>', methods=['GET'])
-def get_history():
+# Retrieve user's chat history
+@app.route('/chat/<str:username>/history', methods=['GET'])
+def get_chat_history(username):
     pass
 
 # Add user's profile
-@app.route('/profile/', methods=['POST'])
-def create_user_profile():
+@app.route('/profile', methods=['POST'])
+def add_user_profile():
     pass
 
 # Update user's profile
 @app.route('/profile/<str:username>', methods=['PUT'])
-def update_user_profile():
+def update_user_profile(username):
+    pass
+
+# Retrieve user's profile
+@app.route('/profile/<str:username>', methods=['GET'])
+def get_user_profile(username):
     pass
 
 # FAQ
-@app.route('/faq', methods=['PUT'])
-def faq():
+@app.route('/faq', methods=['GET'])
+def get_faq():
     pass
 
 if __name__ == '__main__':
