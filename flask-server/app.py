@@ -9,6 +9,11 @@ def index():
 # Start user's chat
 @app.route('/chat/<str:username>/start_session', methods=['POST'])
 def start_chat(username):
+    pass
+
+# Handle in-progress user's chat
+@app.route('/chat/<str:username>/<int:session_id>', methods=['POST'])
+def chat():
     data = request.json
     user_input = data.get('user_input', '')
     
@@ -27,6 +32,7 @@ def chat(username, session_id):
 @app.route('/chat/<str:username>/<int:session_id>/end_session', methods=['POST'])
 def end_chat(username, session_id):
     pass
+
 
 def simple_chatbot_logic(user_input):
     """
