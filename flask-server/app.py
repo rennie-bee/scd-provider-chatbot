@@ -13,7 +13,7 @@ def start_chat(username):
 
 # Handle in-progress user's chat
 @app.route('/chat/<str:username>/<int:session_id>', methods=['POST'])
-def chat():
+def chat(username, session_id):
     data = request.json
     user_input = data.get('user_input', '')
     
