@@ -7,13 +7,13 @@ def index():
     return render_template("index.html")
 
 # Start user's chat
-@app.route('/chat/<str:username>/start_session', methods=['POST'])
-def start_chat(username):
+@app.route('/chat/<string:user_id>/start_session', methods=['POST'])
+def start_chat(user_id):
     pass
 
 # Handle in-progress user's chat
-@app.route('/chat/<str:username>/<int:session_id>', methods=['POST'])
-def chat(username, session_id):
+@app.route('/chat/<string:user_id>/<int:session_id>', methods=['POST'])
+def chat(user_id, session_id):
     data = request.json
     user_input = data.get('user_input', '')
     
@@ -24,8 +24,8 @@ def chat(username, session_id):
     return jsonify({'response': response})
 
 # End user's chat
-@app.route('/chat/<str:username>/<int:session_id>/end_session', methods=['POST'])
-def end_chat(username, session_id):
+@app.route('/chat/<string:user_id>/<int:session_id>/end_session', methods=['POST'])
+def end_chat(user_id, session_id):
     pass
 
 
@@ -46,8 +46,8 @@ def simple_chatbot_logic(user_input):
         return "I'm not sure how to respond to that. Can you try asking something else?"
 
 # Retrieve user's chat history
-@app.route('/chat/<str:username>/history', methods=['GET'])
-def get_chat_history(username):
+@app.route('/chat/<string:user_id>/history', methods=['GET'])
+def get_chat_history(user_id):
     pass
 
 # Add user's profile
@@ -56,13 +56,13 @@ def add_user_profile():
     pass
 
 # Update user's profile
-@app.route('/profile/<str:username>', methods=['PUT'])
-def update_user_profile(username):
+@app.route('/profile/<string:user_id>', methods=['PUT'])
+def update_user_profile(user_id):
     pass
 
 # Retrieve user's profile
-@app.route('/profile/<str:username>', methods=['GET'])
-def get_user_profile(username):
+@app.route('/profile/<string:user_id>', methods=['GET'])
+def get_user_profile(user_id):
     pass
 
 # FAQ

@@ -8,7 +8,7 @@ function sendMessage() {
     }
 
     $.ajax({
-        url: '/chat',
+        url: '/chat/1x2abc/1',
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({ user_input: userInput }),
