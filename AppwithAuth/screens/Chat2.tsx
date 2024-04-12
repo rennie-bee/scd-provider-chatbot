@@ -16,14 +16,11 @@ import { Message } from '../components/types';
 export default function Chat2() {
   const [messages, setMessages] = useState<Message[]>([]);
 
-  const handleSendMessage = (
-    newMessage: string,
-    isQuestion: boolean = false,
-  ) => {
+  // Added fetch request to Flask backend
+  const handleSendMessage = async (newMessage: string) => {
     const now = new Date();
     const timestamp = `${now.getHours()}:${now.getMinutes()}, ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
-    // For both question and manual messages, add the sent message
     const sentMessage: Message = {
       id: Date.now(),
       text: newMessage,
@@ -32,28 +29,30 @@ export default function Chat2() {
     };
     setMessages(currentMessages => [...currentMessages, sentMessage]);
 
-    if (isQuestion) {
-      // Handle question-specific logic here
-      const question = qna.find(q => q.question === newMessage);
-      if (question) {
-        const answerMessage: Message = {
+    try {
+      // Update the URL accordingly
+      const response = await fetch(`http://127.0.0.1:8080/chat/1dhyb/1`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ user_input: newMessage })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const receivedMessage: Message = {
           id: Date.now() + 1,
-          text: question.answer,
+          text: data.response,
           type: 'received',
           timestamp,
         };
-        setMessages(currentMessages => [...currentMessages, answerMessage]);
+        setMessages(currentMessages => [...currentMessages, receivedMessage]);
+      } else {
+        console.error('Failed to send message:', response.status);
       }
-    } else {
-      // For manual messages, generate an automated response if desired
-      // Example: Echo the message or provide a generic bot response
-      const responseMessage: Message = {
-        id: Date.now() + 1,
-        text: 'Echo: ' + newMessage, // Customize this as needed
-        type: 'received',
-        timestamp,
-      };
-      setMessages(currentMessages => [...currentMessages, responseMessage]);
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
   };
 
