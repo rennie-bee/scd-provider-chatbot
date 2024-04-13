@@ -1,3 +1,6 @@
 # cache
 __pycache__
 .idea
+.venv
+.env
+.flaskenv
