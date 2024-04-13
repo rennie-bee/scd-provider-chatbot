@@ -1,20 +1,21 @@
 import boto3
+import os
 from flask import Flask, request, jsonify, render_template
 from werkzeug.utils import secure_filename
 from models import db, UserProfile
 from flask_cors import CORS
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-app.config.from_pyfile('settings.py')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://username:password@localhost/mydatabase'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+app.config['AWS_REGION'] = os.getenv('AWS_REGION')
+app.config['AWS_S3_BUCKET'] = os.getenv('AWS_S3_BUCKET')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['AWS_S3_BUCKET'] = 'your-s3-bucket-name'
-app.config['AWS_REGION'] = 'your-region'
-app.config['AWS_ACCESS_KEY'] = 'your-access-key-id'
-app.config['AWS_SECRET_ACCESS_KEY'] = 'your-secret-access-key'
-db.init_app(app)
 
 s3_client = boto3.client(
     's3',
@@ -22,6 +23,8 @@ s3_client = boto3.client(
     aws_secret_access_key=app.config['AWS_SECRET_ACCESS_KEY'],
     region_name=app.config['AWS_REGION']
 )
+
+db.init_app(app)
 
 ######################################################################
 #  GET INDEX
@@ -42,7 +45,7 @@ def start_chat(user_id):
 ######################################################################
 @app.route('/chat/<string:user_id>/<int:session_id>', methods=['POST'])
 def chat(user_id, session_id):
-    data = request.json
+    data = request.get_json()
     user_input = data.get('user_input', '')
     
     if not user_input:
@@ -66,24 +69,49 @@ def get_chat_history(user_id):
     pass
 
 ######################################################################
+#  GENERATE PRESIGNED URL FOR USER IMAGE UPLOAD AND RETRIEVE
+######################################################################
+@app.route('/generate-presigned-url/<string:filename>', methods=['GET'])
+def get_presigned_url(filename):
+    if not filename:
+        return jsonify({'error': 'Filename is required'}), 400
+
+    url = create_presigned_url(app.config['AWS_S3_BUCKET'], filename)
+    if url:
+        return jsonify({'url': url}), 200
+    else:
+        return jsonify({'error': 'Unable to generate pre-signed URL'}), 500
+
+######################################################################
 #  ADD USER PROFILE
 ######################################################################
 @app.route('/profile', methods=['POST'])
 def add_user_profile():
-    data = request.form
-    file = request.files['user_image']
-    filename = secure_filename(file.filename)
-    image_url = upload_file_to_s3(file, app.config['AWS_S3_BUCKET'], filename)
+    data = request.get_json()
+    user_id = data.get('user_id')
+    first_name = data.get('first_name')
+    last_name = data.get('last_name')
+    medical_id = data.get('medical_id')
+    preferred_name = data.get('preferred name')
+    email = data.get('email')
+    filename = data.get('filename')
+    expertise = data.get('expertise')
+
+    if filename:
+        # Construct the full S3 URL from the filename
+        image_url = f"https://{app.config['AWS_S3_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{filename}"
+    else:
+        image_url = None
 
     user = UserProfile(
-        user_id=data['user_id'],
-        first_name=data['first_name'],
-        last_name=data['last_name'],
-        medical_id=data.get('medical_id'),
-        preferred_name=data.get('preferred_name'),
-        email=data['email'],
-        user_image=image_url,  # URL from S3
-        expertise=data.get('expertise')
+        user_id=user_id,
+        first_name=first_name,
+        last_name=last_name,
+        medical_id=medical_id,
+        preferred_name=preferred_name,
+        email=email,
+        user_image=image_url,
+        expertise=expertise
     )
     db.session.add(user)
     db.session.commit()
@@ -98,12 +126,10 @@ def update_user_profile(user_id):
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    data = request.form
-    image_file = request.files.get('user_image')
-    if image_file:
-        filename = secure_filename(image_file.filename)
-        image_url = upload_file_to_s3(image_file, app.config['AWS_S3_BUCKET'], filename)
-        user.user_image = image_url
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'No data provided'}, 400)
 
     user.first_name = data.get('first_name', user.first_name)
     user.last_name = data.get('last_name', user.last_name)
@@ -111,6 +137,10 @@ def update_user_profile(user_id):
     user.preferred_name = data.get('preferred_name', user.preferred_name)
     user.email = data.get('email', user.email)
     user.expertise = data.get('expertise', user.expertise)
+
+    # Check if a new image filename is provided to update the image URL
+    if 'filename' in data:
+        user.user_image = f"https://{app.config['AWS_S3_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{data.get('filename')}"
     
     db.session.commit()
     return jsonify({'message': 'User profile updated'}), 200
@@ -163,22 +193,17 @@ def simple_chatbot_logic(user_input):
     else:
         return "I'm not sure how to respond to that. Can you try asking something else?"
 
-def upload_file_to_s3(file, bucket_name, object_name=None):
-    """ Upload a file to an S3 bucket """
-    if object_name is None:
-        object_name = file.filename
-
+def create_presigned_url(bucket_name, object_name, expiration=3600):
     try:
-        response = s3_client.upload_fileobj(
-            file,
-            bucket_name,
-            object_name,
-            ExtraArgs={'ACL': 'public-read'}
-        )
-        return f"https://{bucket_name}.s3.{app.config['AWS_REGION']}.amazonaws.com/{secure_filename(object_name)}"
+        response = s3_client.generate_presigned_url('get_object',
+                                                    Params={'Bucket': bucket_name,
+                                                            'Key': object_name},
+                                                    ExpiresIn=expiration)
     except Exception as e:
-        print(f"Something went wrong: {e}")
+        print(f"Error generating presigned URL: {e}")
         return None
+
+    return response
 
 
 if __name__ == '__main__':
