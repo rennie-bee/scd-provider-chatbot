@@ -2,8 +2,10 @@ import boto3
 from flask import Flask, request, jsonify, render_template
 from werkzeug.utils import secure_filename
 from models import db, UserProfile
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 app.config.from_pyfile('settings.py')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://username:password@localhost/mydatabase'
