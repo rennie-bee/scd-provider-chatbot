@@ -92,14 +92,14 @@ def add_user_profile():
     first_name = data.get('first_name')
     last_name = data.get('last_name')
     medical_id = data.get('medical_id')
-    preferred_name = data.get('preferred name')
+    preferred_name = data.get('preferred_name')
     email = data.get('email')
-    filename = data.get('filename')
+    image_name = data.get('image_name')
     expertise = data.get('expertise')
 
-    if filename:
+    if image_name:
         # Construct the full S3 URL from the filename
-        image_url = f"https://{app.config['AWS_S3_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{filename}"
+        image_url = f"https://{app.config['AWS_S3_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{image_name}"
     else:
         image_url = None
 
@@ -139,8 +139,8 @@ def update_user_profile(user_id):
     user.expertise = data.get('expertise', user.expertise)
 
     # Check if a new image filename is provided to update the image URL
-    if 'filename' in data:
-        user.user_image = f"https://{app.config['AWS_S3_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{data.get('filename')}"
+    if 'image_name' in data:
+        user.user_image = f"https://{app.config['AWS_S3_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{data.get('image_name')}"
     
     db.session.commit()
     return jsonify({'message': 'User profile updated'}), 200
