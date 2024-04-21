@@ -196,7 +196,7 @@ def simple_chatbot_logic(user_input):
 
 def create_presigned_url(bucket_name, object_name, expiration=3600):
     try:
-        response = s3_client.generate_presigned_url('get_object',
+        response = s3_client.generate_presigned_url('put_object',
                                                     Params={'Bucket': bucket_name,
                                                             'Key': object_name},
                                                     ExpiresIn=expiration)
