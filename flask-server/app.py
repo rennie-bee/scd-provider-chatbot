@@ -168,7 +168,7 @@ def get_user_profile(user_id):
     return jsonify(user_data)
 
 ######################################################################
-#  Retrieve FAQ
+#  RETRIEVE FAQ
 ######################################################################
 @app.route('/faq', methods=['GET'])
 def get_faq():
