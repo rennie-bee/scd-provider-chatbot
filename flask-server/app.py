@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, render_template
 from models import UserProfile
 from flask_cors import CORS
 from dotenv import load_dotenv
+from embeddings import EmbeddingProcessor
 
 # Load environment variables from .env file
 load_dotenv()
@@ -16,9 +17,10 @@ CORS(app)
 
 # Amazon S3 Client Configuration
 app.config['AWS_REGION'] = os.getenv('AWS_REGION')
-app.config['AWS_S3_BUCKET'] = os.getenv('AWS_S3_BUCKET')
+app.config['AWS_S3_USER_IMAGE_BUCKET'] = os.getenv('AWS_S3_USER_IMAGE_BUCKET')
 app.config['AWS_ACCESS_KEY'] = os.getenv('AWS_ACCESS_KEY')
 app.config['AWS_SECRET_ACCESS_KEY'] = os.getenv('AWS_SECRET_ACCESS_KEY')
+app.config['AWS_S3_SCD_DATA_BUCKET'] = os.getenv('AWS_S3_SCD_DATA_BUCKET')
 
 s3_client = boto3.client(
     's3',
@@ -33,6 +35,38 @@ s3_client = boto3.client(
 @app.route('/')
 def index():
     return render_template("index.html")
+
+######################################################################
+#  RECEIVE FILE UPLOAD NOTIFICATION AND CREATE EMBEDDINGS TO PINECONE
+######################################################################
+@app.route('/embeddings', methods=['POST'])
+def create_embeddings():
+    # Extract filename from the JSON payload sent by Lambda
+    data = request.get_json()
+    filename = data['filename']
+    file_extension = filename.split('.')[-1].lower()  # Determine file extension for document type
+
+    # Map extensions to document types used by EmbeddingProcessor
+    doc_type = 'pdf' if file_extension == 'pdf' else 'txt'
+
+    # Construct the full S3 object key if needed
+    file_key = filename
+
+    # Read the file content directly from S3
+    try:
+        response = s3_client.get_object(Bucket=app.config['AWS_S3_SCD_DATA_BUCKET'], Key=file_key)
+        # Stream the file content. This handles both text and binary files.
+        file_stream = response['Body']
+
+        # Instantiate and process using the EmbeddingProcessor
+        processor = EmbeddingProcessor(file_stream, doc_type)
+        processor.process()
+
+        return jsonify({"message": "Embeddings created and uploaded successfully.", "status": "success"}), 200
+
+    except Exception as e:
+        # Log the error or handle it appropriately
+        return jsonify({"message": str(e), "status": "error"}), 500
 
 ######################################################################
 #  START CHAT SESSION
@@ -77,7 +111,7 @@ def get_presigned_url(filename):
     if not filename:
         return jsonify({'error': 'Filename is required'}), 400
 
-    url = create_presigned_url(app.config['AWS_S3_BUCKET'], filename)
+    url = create_presigned_url(app.config['AWS_S3_USER_IMAGE_BUCKET'], filename)
     if url:
         return jsonify({'url': url}), 200
     else:
