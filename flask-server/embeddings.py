@@ -8,7 +8,6 @@ from langchain_community.vectorstores import Pinecone
 from langchain_community.document_loaders import UnstructuredPDFLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from unstructured.cleaners.core import clean_extra_whitespace
-import util.scd_utils as scd_utils
 import openai
 
 class EmbeddingProcessor:
