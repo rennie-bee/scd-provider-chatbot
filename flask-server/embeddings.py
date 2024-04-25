@@ -51,7 +51,7 @@ class EmbeddingProcessor:
     def generate_embeddings(self):
         text_chunks = []
         pg_no_arr = []
-        splitter = RecursiveCharacterTextSplitter(separators=['\n\n', '\n', '.', ','], chunk_size=750, chunk_overlap=50)
+        splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(model_name="gpt-3.5-turbo", chunk_size=750, chunk_overlap=50)
         for key in self.concat_text.keys():
             text_page_content_str = str(self.concat_text[key])
             text_chunks += splitter.split_text(text_page_content_str)
