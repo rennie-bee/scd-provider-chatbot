@@ -1,10 +1,10 @@
 import boto3
 import os
 from flask import Flask, request, jsonify, render_template
-from werkzeug.utils import secure_filename
-from models import db, UserProfile
+from models import UserProfile
 from flask_cors import CORS
 from dotenv import load_dotenv
+from embeddings import EmbeddingProcessor
 
 # Load environment variables from .env file
 load_dotenv()
@@ -12,10 +12,15 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Amazon S3 Client Configuration
 app.config['AWS_REGION'] = os.getenv('AWS_REGION')
-app.config['AWS_S3_BUCKET'] = os.getenv('AWS_S3_BUCKET')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['AWS_S3_USER_IMAGE_BUCKET'] = os.getenv('AWS_S3_USER_IMAGE_BUCKET')
+app.config['AWS_ACCESS_KEY'] = os.getenv('AWS_ACCESS_KEY')
+app.config['AWS_SECRET_ACCESS_KEY'] = os.getenv('AWS_SECRET_ACCESS_KEY')
+app.config['AWS_S3_SCD_DATA_BUCKET'] = os.getenv('AWS_S3_SCD_DATA_BUCKET')
 
 s3_client = boto3.client(
     's3',
@@ -24,14 +29,44 @@ s3_client = boto3.client(
     region_name=app.config['AWS_REGION']
 )
 
-db.init_app(app)
-
 ######################################################################
 #  GET INDEX
 ######################################################################
 @app.route('/')
 def index():
     return render_template("index.html")
+
+######################################################################
+#  RECEIVE FILE UPLOAD NOTIFICATION AND CREATE EMBEDDINGS TO PINECONE
+######################################################################
+@app.route('/embeddings', methods=['POST'])
+def create_embeddings():
+    # Extract filename from the JSON payload sent by Lambda
+    data = request.get_json()
+    filename = data['filename']
+    file_extension = filename.split('.')[-1].lower()  # Determine file extension for document type
+
+    # Map extensions to document types used by EmbeddingProcessor
+    doc_type = 'pdf' if file_extension == 'pdf' else 'txt'
+
+    # Construct the full S3 object key if needed
+    file_key = filename
+
+    # Read the file content directly from S3
+    try:
+        response = s3_client.get_object(Bucket=app.config['AWS_S3_SCD_DATA_BUCKET'], Key=file_key)
+        # Stream the file content. This handles both text and binary files.
+        file_stream = response['Body']
+
+        # Instantiate and process using the EmbeddingProcessor
+        processor = EmbeddingProcessor(file_stream, doc_type)
+        processor.process()
+
+        return jsonify({"message": "Embeddings created and uploaded successfully.", "status": "success"}), 200
+
+    except Exception as e:
+        # Log the error or handle it appropriately
+        return jsonify({"message": str(e), "status": "error"}), 500
 
 ######################################################################
 #  START CHAT SESSION
@@ -76,7 +111,7 @@ def get_presigned_url(filename):
     if not filename:
         return jsonify({'error': 'Filename is required'}), 400
 
-    url = create_presigned_url(app.config['AWS_S3_BUCKET'], filename)
+    url = create_presigned_url(app.config['AWS_S3_USER_IMAGE_BUCKET'], filename)
     if url:
         return jsonify({'url': url}), 200
     else:
@@ -103,7 +138,7 @@ def add_user_profile():
     else:
         image_url = None
 
-    user = UserProfile(
+    user_profile = UserProfile(
         user_id=user_id,
         first_name=first_name,
         last_name=last_name,
@@ -113,8 +148,7 @@ def add_user_profile():
         user_image=image_url,
         expertise=expertise
     )
-    db.session.add(user)
-    db.session.commit()
+    user_profile.save()
     return jsonify({'message': 'User profile added successfully'}), 201
 
 ######################################################################
@@ -122,8 +156,8 @@ def add_user_profile():
 ######################################################################
 @app.route('/profile/<string:user_id>', methods=['PUT'])
 def update_user_profile(user_id):
-    user = UserProfile.query.get(user_id)
-    if not user:
+    user_profile = UserProfile.get(user_id)
+    if not user_profile:
         return jsonify({'error': 'User not found'}), 404
 
     data = request.get_json()
@@ -131,43 +165,44 @@ def update_user_profile(user_id):
     if not data:
         return jsonify({'error': 'No data provided'}, 400)
 
-    user.first_name = data.get('first_name', user.first_name)
-    user.last_name = data.get('last_name', user.last_name)
-    user.medical_id = data.get('medical_id', user.medical_id)
-    user.preferred_name = data.get('preferred_name', user.preferred_name)
-    user.email = data.get('email', user.email)
-    user.expertise = data.get('expertise', user.expertise)
+    user_profile.first_name = data.get('first_name', user_profile.first_name)
+    user_profile.last_name = data.get('last_name', user_profile.last_name)
+    user_profile.medical_id = data.get('medical_id', user_profile.medical_id)
+    user_profile.preferred_name = data.get('preferred_name', user_profile.preferred_name)
+    user_profile.email = data.get('email', user_profile.email)
+    user_profile.expertise = data.get('expertise', user_profile.expertise)
 
     # Check if a new image filename is provided to update the image URL
     if 'image_name' in data:
-        user.user_image = f"https://{app.config['AWS_S3_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{data.get('image_name')}"
-    
-    db.session.commit()
+        user_profile.user_image = f"https://{app.config['AWS_S3_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{data.get('image_name')}"
+
+    user_profile.save()
     return jsonify({'message': 'User profile updated'}), 200
+
 
 ######################################################################
 #  RETRIEVE USER PROFILE
 ######################################################################
 @app.route('/profile/<string:user_id>', methods=['GET'])
 def get_user_profile(user_id):
-    user = UserProfile.query.get(user_id)
-    if not user:
+    user_profile = UserProfile.get(user_id)
+    if not user_profile:
         return jsonify({'error': 'User not found'}), 404
     
     user_data = {
-        'user_id': user.user_id,
-        'first_name': user.first_name,
-        'last_name': user.last_name,
-        'medical_id': user.medical_id,
-        'preferred_name': user.preferred_name,
-        'email': user.email,
-        'user_image': user.user_image,
-        'expertise': user.expertise
+        'user_id': user_profile.user_id,
+        'first_name': user_profile.first_name,
+        'last_name': user_profile.last_name,
+        'medical_id': user_profile.medical_id,
+        'preferred_name': user_profile.preferred_name,
+        'email': user_profile.email,
+        'user_image': user_profile.user_image,
+        'expertise': user_profile.expertise
     }
     return jsonify(user_data)
 
 ######################################################################
-#  Retrieve FAQ
+#  RETRIEVE FAQ
 ######################################################################
 @app.route('/faq', methods=['GET'])
 def get_faq():
@@ -195,7 +230,7 @@ def simple_chatbot_logic(user_input):
 
 def create_presigned_url(bucket_name, object_name, expiration=3600):
     try:
-        response = s3_client.generate_presigned_url('get_object',
+        response = s3_client.generate_presigned_url('put_object',
                                                     Params={'Bucket': bucket_name,
                                                             'Key': object_name},
                                                     ExpiresIn=expiration)
