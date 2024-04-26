@@ -1,67 +1,7 @@
-// screens/Profile.js
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth, signOut } from '@firebase/auth';
-
-// const Profile = () => {
-//   const navigation = useNavigation();
-//   const auth = getAuth();
-
-//   const handleSignOut = async () => {
-//     try {
-//       await signOut(auth);
-//       navigation.navigate('Login');
-//     } catch (error) {
-//       console.error('Sign Out Error', error);
-//     }
-//   };
-
-//   return (
-//     <View style={styles.container}>
-//       <Image style={styles.avatar} source={require('./LOGO.png')} />
-//       <Text style={styles.email}>{auth.currentUser?.email}</Text>
-//       <TouchableOpacity style={styles.button} onPress={handleSignOut}>
-//         <Text style={styles.buttonText}>Sign Out</Text>
-//       </TouchableOpacity>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     backgroundColor: '#e9edee', // Adjusted to match your color scheme
-//   },
-//   avatar: {
-//     width: 100,
-//     height: 100,
-//     borderRadius: 50,
-//     backgroundColor: '#D4E7C5', // Temporary placeholder color
-//     marginBottom: 20,
-//   },
-//   email: {
-//     fontSize: 16,
-//     color: '#607274', // Text color
-//     marginBottom: 20,
-//   },
-//   button: {
-//     width: '90%', // Makes the button take up nearly the full width of the screen
-//     paddingHorizontal: 20,
-//     paddingVertical: 10,
-//     backgroundColor: '#199988', // Button color
-//     borderRadius: 10, // Reduces the radius to make corners less rounded
-//     justifyContent: 'center', // Center the button text horizontally
-//     alignItems: 'center', // Center the button text vertically
-//     marginTop: 20, // Adds space between the email and the button
-//   },
-//   buttonText: {
-//     color: 'white',
-//     fontSize: 16, // Adjust the font size as needed
-//   },
-// });
 
 const Profile = () => {
 
@@ -92,28 +32,28 @@ const Profile = () => {
           <Text style={styles.nameText}>Username</Text>
         </View>
       </View>
-      <View style={styles.bioContainer}>
-        <Text style={styles.bioText}>
-          {auth.currentUser?.email}
-        </Text>
-      </View>
-      <View style={styles.statsContainer}>
-        <View style={styles.statContainer}>
-          <Text style={styles.statCount}>1234</Text>
-          <Text style={styles.statLabel}>Posts</Text>
-        </View>
-        <View style={styles.statContainer}>
-          <Text style={styles.statCount}>5678</Text>
-          <Text style={styles.statLabel}>Followers</Text>
-        </View>
-        <View style={styles.statContainer}>
-          <Text style={styles.statCount}>9101</Text>
-          <Text style={styles.statLabel}>Following</Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Account</Text>
+        <View style={styles.infoContainer}>
+          <Text style={styles.infoText}>Full Name: Username</Text>
+          <Text style={styles.infoText}>Email: {auth.currentUser?.email}</Text>
+          <Text style={styles.infoText}>Medical ID: 000001</Text>
         </View>
       </View>
-      {/* <TouchableOpacity style={styles.button} onPress={handleEditPress}>
-        <Text style={styles.buttonText}>Edit Profile</Text>
-      </TouchableOpacity> */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>App</Text>
+        <View style={styles.infoContainer}>
+          <Text style={styles.infoText}>Color Scheme </Text>
+          <Text style={styles.infoText}>Haptic Feedback </Text>
+        </View>
+      </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>About</Text>
+        <View style={styles.infoContainer}>
+          <Text style={styles.infoText}>Privacy Policy </Text>
+          <Text style={styles.infoText}>Version: 0.8</Text>
+        </View>
+      </View>
       <TouchableOpacity style={styles.button} onPress={handleSignOut}>
         <Text style={styles.buttonText}>Sign Out</Text>
       </TouchableOpacity>
@@ -174,12 +114,32 @@ const styles = {
     backgroundColor: '#199988',
     borderRadius: 5,
     padding: 10,
-    marginHorizontal: 20,
+    margin: 20,
   },
   buttonText: {
     fontSize: 16,
     color: '#fff',
     textAlign: 'center',
+  },
+  section: {
+    padding: 10,
+    marginTop: 5,
+    marginLeft: 15,
+    marginRight: 15,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  infoContainer: {
+    backgroundColor: '#E1F0DA', // Slightly different gray for the list background
+    borderRadius: 10,
+    padding: 10,
+  },
+  infoText: {
+    fontSize: 16,
+    marginBottom: 10,
   },
 };
 
