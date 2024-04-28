@@ -34,24 +34,6 @@ const Footer: React.FC<FooterProps> = ({ onSendMessage, qna }) => {
     }
   };
 
-  // return (
-  //   <KeyboardAvoidingView
-  //     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-  //     style={styles.container}>
-  //     <View style={styles.footer}>
-  //       <TextInput
-  //         style={styles.input}
-  //         value={message}
-  //         onChangeText={setMessage}
-  //         placeholder="Type a message..."
-  //         onSubmitEditing={handleSendMessage}
-  //       />
-  //       <TouchableOpacity onPress={handleSendMessage}>
-  //         <Ionicons name="send" size={24} color="#607274" />
-  //       </TouchableOpacity>
-  //     </View>
-  //   </KeyboardAvoidingView>
-  // );
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
