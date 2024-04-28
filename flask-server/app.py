@@ -155,7 +155,7 @@ def add_user_profile():
 
     # Save the user profile to DynamoDB
     try:
-        user_profile.save(user_profile_table)  # Assuming user_profile_table is defined globally or fetched here
+        user_profile.save(user_profile_table)
         return jsonify({'message': 'User profile added successfully'}), 201
     except Exception as e:
         return jsonify({'message': str(e), 'status': 'error'}), 500
@@ -221,7 +221,7 @@ def get_user_profile(user_id):
         'user_image': user_profile.user_image,
         'expertise': user_profile.expertise
     }
-    return jsonify(user_data)
+    return jsonify(user_data), 200
 
 ######################################################################
 #  RETRIEVE FAQ
