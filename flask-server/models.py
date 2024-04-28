@@ -1,11 +1,3 @@
-import firebase_admin
-from firebase_admin import credentials, firestore
-
-# Firebase Configuration
-cred = credentials.Certificate("scd-chatbot-firebase-adminsdk-3zz2o-9a7301481c.json")
-firebase_admin.initialize_app(cred)
-db = firestore.client()
-
 class UserProfile:
     def __init__(self, user_id, first_name, last_name, email, medical_id=None, preferred_name=None, user_image=None, expertise=None):
         self.user_id = user_id
@@ -17,16 +9,28 @@ class UserProfile:
         self.user_image = user_image
         self.expertise = expertise
 
-    def save(self):
-        user_ref = db.collection('users').document(self.user_id)
-        user_ref.set(vars(self), merge=True)
+    def save(self, table):
+        item = {
+            'user_id': self.user_id,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'email': self.email,
+            'medical_id': self.medical_id,
+            'preferred_name': self.preferred_name,
+            'user_image': self.user_image,
+            'expertise': self.expertise
+        }
+        table.put_item(Item=item)
 
-    @staticmethod
-    def get(user_id):
-        user_ref = db.collection('users').document(user_id)
-        user_doc = user_ref.get()
-        if user_doc.exists:
-            return UserProfile(**user_doc.to_dict())
+    @classmethod
+    def get(cls, user_id, table):
+        response = table.get_item(
+            Key={
+                'user_id': user_id
+            }
+        )
+        if 'Item' in response:
+            return cls(**response['Item'])
         else:
             return None
 
