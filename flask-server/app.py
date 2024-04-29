@@ -1,9 +1,12 @@
 import boto3
 import os
+import uuid
 from flask import Flask, request, jsonify, render_template
-from models import UserProfile
 from flask_cors import CORS
 from dotenv import load_dotenv
+from datetime import datetime, timezone
+from boto3.dynamodb.conditions import Key
+from models import UserProfile, ChatSession, ChatMessage
 from embeddings import EmbeddingProcessor
 
 # Load environment variables from .env file
@@ -15,13 +18,14 @@ CORS(app)
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
 # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Amazon S3 Client Configuration
+# AWS Environment Variables
 app.config['AWS_REGION'] = os.getenv('AWS_REGION')
 app.config['AWS_S3_USER_IMAGE_BUCKET'] = os.getenv('AWS_S3_USER_IMAGE_BUCKET')
 app.config['AWS_ACCESS_KEY_ID'] = os.getenv('AWS_ACCESS_KEY_ID')
 app.config['AWS_SECRET_ACCESS_KEY'] = os.getenv('AWS_SECRET_ACCESS_KEY')
 app.config['AWS_S3_SCD_DATA_BUCKET'] = os.getenv('AWS_S3_SCD_DATA_BUCKET')
 
+# Amazon S3 Client Configuration
 s3_client = boto3.client(
     's3',
     aws_access_key_id=app.config['AWS_ACCESS_KEY_ID'],
@@ -37,7 +41,10 @@ dynamodb = boto3.resource(
         region_name=app.config['AWS_REGION']
     )
 
+# AWS DynamoDB Tables
 user_profile_table = dynamodb.Table('UserProfile')
+chat_session_table = dynamodb.Table('ChatSession')
+chat_message_table = dynamodb.Table('ChatMessage')
 
 ######################################################################
 #  GET INDEX
@@ -83,12 +90,20 @@ def create_embeddings():
 ######################################################################
 @app.route('/chat/<string:user_id>/start_session', methods=['POST'])
 def start_chat(user_id):
-    pass
+    # Generate a unique session ID
+    session_id = str(uuid.uuid4())
+    start_time = datetime.now(timezone.utc)
+
+    # Create and save the new chat session
+    chat_session = ChatSession(user_id, session_id, start_time)
+    chat_session.save(chat_session_table)
+
+    return jsonify({'session_id': session_id}), 200
 
 ######################################################################
 #  HANDLE IN-PROGRESS CHAT SESSION
 ######################################################################
-@app.route('/chat/<string:user_id>/<int:session_id>', methods=['POST'])
+@app.route('/chat/<string:user_id>/<string:session_id>', methods=['POST'])
 def chat(user_id, session_id):
     data = request.get_json()
     user_input = data.get('user_input', '')
@@ -96,22 +111,68 @@ def chat(user_id, session_id):
     if not user_input:
         return jsonify({'error': 'No message provided'}), 400
 
+    user_input_timestamp = datetime.now(timezone.utc)
     response = simple_chatbot_logic(user_input)
-    return jsonify({'response': response})
+    response_timestamp = datetime.now(timezone.utc)
 
-######################################################################
-#  END CHAT SESSION
-######################################################################
-@app.route('/chat/<string:user_id>/<int:session_id>/end_session', methods=['POST'])
-def end_chat(user_id, session_id):
-    pass
+    chat_message = ChatMessage(
+        user_id, session_id, user_input, user_input_timestamp, response, response_timestamp
+    )
+    chat_message.save(chat_message_table)
+
+    # Update the session's end_time to the latest activity time
+    try:
+        chat_session_table.update_item(
+            Key={
+                'user_id': user_id,
+                'session_id': session_id
+            },
+            UpdateExpression='SET end_time = :val',
+            ExpressionAttributeValues={
+                ':val': response_timestamp.isoformat()
+            },
+            ReturnValues='UPDATED_NEW'
+        )
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+
+    return jsonify({'response': response}), 200
 
 ######################################################################
 #  RETRIEVE CHAT HISTORY
 ######################################################################
 @app.route('/chat/<string:user_id>/history', methods=['GET'])
 def get_chat_history(user_id):
-    pass
+    # Retrieve all sessions for the user
+    session_response = chat_session_table.query(
+        KeyConditionExpression=Key('user_id').eq(user_id)
+    )
+    # Convert sessions to list and sort by 'end_time' (handling None values as ongoing sessions)
+    sessions = session_response['Items']
+    sorted_sessions = sorted(
+        sessions,
+        key=lambda x: x.get('end_time', '9999-12-31T23:59:59'),  # Sort ongoing sessions as the most recent
+        reverse=True  # Use reverse to sort from the most recently ended to the oldest
+    )
+
+    history = []
+    for session in sorted_sessions:
+        session_id = session['session_id']
+        # Query for messages using the new composite sort key
+        message_response = chat_message_table.query(
+            KeyConditionExpression=Key('user_id').eq(user_id) & 
+                                    Key('session_id_timestamp').begins_with(session_id),
+            ScanIndexForward=True  # True for ascending order based on timestamp within the session_id
+        )
+        # Append messages along with session information
+        history.append({
+            'session_id': session_id,
+            'start_time': session['start_time'],
+            'end_time': session.get('end_time'),
+            'messages': message_response['Items']
+        })
+
+    return jsonify({'history': history}), 200
 
 ######################################################################
 #  GENERATE PRESIGNED URL FOR USER IMAGE UPLOAD
