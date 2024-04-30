@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from boto3.dynamodb.conditions import Key
 from models import UserProfile, ChatSession, ChatMessage
 from embeddings import EmbeddingProcessor
+from chatbotLLM import HeadAgent
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,6 +18,11 @@ CORS(app)
 
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
 # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Pinecone and OpenAI configuration
+app.config['PINECONE_API_KEY'] = os.getenv('PINECONE_API_KEY')
+app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
+app.config['PINECONE_INDEX_NAME'] = os.getenv('PINECONE_INDEX_NAME')
 
 # AWS Environment Variables
 app.config['AWS_REGION'] = os.getenv('AWS_REGION')
@@ -76,7 +82,13 @@ def create_embeddings():
         file_stream = response['Body']
 
         # Instantiate and process using the EmbeddingProcessor
-        processor = EmbeddingProcessor(file_stream, doc_type)
+        processor = EmbeddingProcessor(
+            file_stream=file_stream, 
+            doc_type=doc_type,
+            api_key=app.config['PINECONE_API_KEY'],
+            openai_key=app.config['OPENAI_API_KEY'],
+            index_name=app.config['PINECONE_INDEX_NAME']
+        )
         processor.process()
 
         return jsonify({"message": "Embeddings created and uploaded successfully.", "status": "success"}), 200
@@ -112,9 +124,36 @@ def chat(user_id, session_id):
         return jsonify({'error': 'No message provided'}), 400
 
     user_input_timestamp = datetime.now(timezone.utc)
-    chatbot_response = simple_chatbot_logic(user_input)
+    # Retrive previous chat messages
+    messages = []
+    # Construct the session_id to use in querying messages
+    user_session_id = f"{user_id}#{session_id}"
+    # Query for messages using the composite message_id key
+    try:
+        message_response = chat_message_table.query(
+            KeyConditionExpression=Key('user_session_id').eq(user_session_id)
+        )
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+
+    # Sort messages in chronologicall increasing order
+    sorted_messages = sorted(message_response['Items'], key=lambda x: x['timestamp'])
+    for message in sorted_messages:
+        messages.append(('user', message['user_input']))
+        messages.append(('chatbot', message['chatbot_response']))
+
+    # Initialize head agent of LLM model
+    head_agent = HeadAgent(
+        openai_key=app.config['OPENAI_API_KEY'], 
+        pinecone_key=app.config['PINECONE_API_KEY'], 
+        pinecone_index_name=app.config['PINECONE_INDEX_NAME'],
+        messages=messages
+    )
+
+    # Get response from the LLM model
+    chatbot_response = head_agent.process_input(user_input)
     chatbot_response_timestamp = datetime.now(timezone.utc)
-    message_id = str(uuid.uuid4())
+    message_id = str(uuid.uuid4()) # Generate a unique message ID 
     timestamp = datetime.now(timezone.utc)
 
     chat_message = ChatMessage(
@@ -127,7 +166,12 @@ def chat(user_id, session_id):
         chatbot_response=chatbot_response, 
         chatbot_response_timestamp=chatbot_response_timestamp
     )
-    chat_message.save(chat_message_table)
+
+    # Save chat message
+    try:
+        chat_message.save(chat_message_table)
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
 
     # Update the session's end_time to the latest activity time
     try:
@@ -153,9 +197,13 @@ def chat(user_id, session_id):
 @app.route('/chat/<string:user_id>/history', methods=['GET'])
 def get_chat_history(user_id):
     # Retrieve all sessions for the user
-    session_response = chat_session_table.query(
-        KeyConditionExpression=Key('user_id').eq(user_id)
-    )
+    try:
+        session_response = chat_session_table.query(
+            KeyConditionExpression=Key('user_id').eq(user_id)
+        )
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+    
     # Convert sessions to list and sort by 'end_time' (handling None values as ongoing sessions)
     sessions = session_response['Items']
     sorted_sessions = sorted(
@@ -170,9 +218,12 @@ def get_chat_history(user_id):
         # Construct the session_id to use in querying messages
         user_session_id = f"{user_id}#{session_id}"
         # Query for messages using the composite message_id key
-        message_response = chat_message_table.query(
-            KeyConditionExpression=Key('user_session_id').eq(user_session_id)
-        )
+        try:
+            message_response = chat_message_table.query(
+                KeyConditionExpression=Key('user_session_id').eq(user_session_id)
+            )
+        except Exception as e:
+            return jsonify({'message': str(e), 'status': 'error'}), 500
         # Append messages along with session information
         history.append({
             'session_id': session_id,

@@ -136,7 +136,7 @@ class ChatMessage:
             )
             return response
         except Exception as e:
-            print(f"Error deleting session: {e}")
+            print(f"Error deleting message: {e}")
             return None
 
     def __repr__(self):
