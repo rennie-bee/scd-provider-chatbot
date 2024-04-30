@@ -310,7 +310,9 @@ class HeadAgent:
 
             if is_obnox:
                 ai_message = "Please do not ask Obnoxious Questions "
-                self.messages.append(("chatbot", ai_message))
+                # self.messages.append(("chatbot", ai_message))
+
+                return ai_message
                 # with st.chat_message("assistant"):
                 #    st.write(ai_message)
 
@@ -328,7 +330,7 @@ class HeadAgent:
                 
                 if extracted_response != "No":
                     ai_message = extracted_response
-                    self.messages.append(("chatbot", ai_message))
+                    # self.messages.append(("chatbot", ai_message))
 
                     return ai_message
                     # with st.chat_message("assistant"):
@@ -344,7 +346,7 @@ class HeadAgent:
                         #                                               conv_history=messages,mode = self.mode)
                         
                         ai_message = "No Relevant Documents found. Please ask a relevant question"
-                        self.messages.append(("chatbot", ai_message))
+                        # self.messages.append(("chatbot", ai_message))
 
                         return ai_message
                         # with st.chat_message("assistant"):
@@ -390,7 +392,7 @@ class HeadAgent:
                                                                     conv_history=self.messages,mode = self.mode)
 
                         # Add the AI's response to the conversation history
-                        self.messages.append(("chatbot", ai_message))
+                        # self.messages.append(("chatbot", ai_message))
                         return ai_message
                         # with st.chat_message("assistant"):
                         #    st.write(ai_message)
