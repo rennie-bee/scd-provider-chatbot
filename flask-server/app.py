@@ -112,11 +112,20 @@ def chat(user_id, session_id):
         return jsonify({'error': 'No message provided'}), 400
 
     user_input_timestamp = datetime.now(timezone.utc)
-    response = simple_chatbot_logic(user_input)
-    response_timestamp = datetime.now(timezone.utc)
+    chatbot_response = simple_chatbot_logic(user_input)
+    chatbot_response_timestamp = datetime.now(timezone.utc)
+    message_id = str(uuid.uuid4())
+    timestamp = datetime.now(timezone.utc)
 
     chat_message = ChatMessage(
-        user_id, session_id, user_input, user_input_timestamp, response, response_timestamp
+        user_id=user_id, 
+        session_id=session_id, 
+        message_id=message_id,
+        timestamp=timestamp, 
+        user_input=user_input, 
+        user_input_timestamp=user_input_timestamp, 
+        chatbot_response=chatbot_response, 
+        chatbot_response_timestamp=chatbot_response_timestamp
     )
     chat_message.save(chat_message_table)
 
@@ -129,14 +138,14 @@ def chat(user_id, session_id):
             },
             UpdateExpression='SET end_time = :val',
             ExpressionAttributeValues={
-                ':val': response_timestamp.isoformat()
+                ':val': timestamp.isoformat()
             },
             ReturnValues='UPDATED_NEW'
         )
     except Exception as e:
         return jsonify({'message': str(e), 'status': 'error'}), 500
 
-    return jsonify({'response': response}), 200
+    return jsonify({'response': chatbot_response}), 200
 
 ######################################################################
 #  RETRIEVE CHAT HISTORY
@@ -158,19 +167,20 @@ def get_chat_history(user_id):
     history = []
     for session in sorted_sessions:
         session_id = session['session_id']
-        # Query for messages using the new composite sort key
+        # Construct the session_id to use in querying messages
+        user_session_id = f"{user_id}#{session_id}"
+        # Query for messages using the composite message_id key
         message_response = chat_message_table.query(
-            KeyConditionExpression=Key('user_id').eq(user_id) & 
-                                    Key('session_id_timestamp').begins_with(session_id),
-            ScanIndexForward=True  # True for ascending order based on timestamp within the session_id
+            KeyConditionExpression=Key('user_session_id').eq(user_session_id)
         )
         # Append messages along with session information
         history.append({
             'session_id': session_id,
             'start_time': session['start_time'],
             'end_time': session.get('end_time'),
-            'messages': message_response['Items']
+            'messages': sorted(message_response['Items'], key=lambda x: x['timestamp'])
         })
+
 
     return jsonify({'history': history}), 200
 
