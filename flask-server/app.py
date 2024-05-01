@@ -136,7 +136,7 @@ def chat(user_id, session_id):
     except Exception as e:
         return jsonify({'message': str(e), 'status': 'error'}), 500
 
-    # Sort messages in chronologicall increasing order
+    # Sort messages in chronologically increasing order
     sorted_messages = sorted(message_response['Items'], key=lambda x: x['timestamp'])
     for message in sorted_messages:
         messages.append(('user', message['user_input']))
