@@ -140,7 +140,7 @@ def chat(user_id, session_id):
     sorted_messages = sorted(message_response['Items'], key=lambda x: x['timestamp'])
     for message in sorted_messages:
         messages.append(('user', message['user_input']))
-        messages.append(('chatbot', message['chatbot_response']))
+        messages.append(('assistant', message['chatbot_response']))
 
     # Initialize head agent of LLM model
     head_agent = HeadAgent(
