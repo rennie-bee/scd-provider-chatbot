@@ -72,6 +72,7 @@ class QueryAgent:
         response = response.choices[0].message.content
         if response == "No":
             response = self.check_if_followup_query(query, queries)
+            response = response.choices[0].message.content
             if response == "No":
                 response = self.query_vector_store(query)
                 for match in response['matches'][:self.top_k]:
@@ -282,15 +283,15 @@ class HeadAgent:
         # conversation = []
         # Display existing chat messages
         # ... (code for displaying messages)
-        '''
-        for role, message in messages:
-            if role == "user":
-                with st.chat_message("user"):
-                    st.write(message)
-            else:
-                with st.chat_message("assistant"):
-                    st.write(message)
-        '''
+        
+        # for role, message in messages:
+        #    if role == "user":
+        #        with st.chat_message("user"):
+        #            st.write(message)
+        #    else:
+        #        with st.chat_message("assistant"):
+        #            st.write(message)
+        
 
         # Wait for user input
         prompt = user_input

@@ -150,6 +150,8 @@ def chat(user_id, session_id):
         messages=messages
     )
 
+    head_agent.setup_sub_agents()
+
     # Get response from the LLM model
     chatbot_response = head_agent.process_input(user_input)
     chatbot_response_timestamp = datetime.now(timezone.utc)
