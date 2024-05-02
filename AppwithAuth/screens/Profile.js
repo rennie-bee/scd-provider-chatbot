@@ -1,12 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth, signOut } from '@firebase/auth';
 
 const Profile = () => {
-
   const navigation = useNavigation();
   const auth = getAuth();
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [username, setUsername] = useState(''); // Placeholder for username state
 
   const handleSignOut = async () => {
     try {
@@ -43,25 +44,59 @@ const Profile = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>App</Text>
         <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>Color Scheme </Text>
-          <Text style={styles.infoText}>Haptic Feedback </Text>
+          <Text style={styles.infoText}>Color Scheme</Text>
+          <Text style={styles.infoText}>Haptic Feedback</Text>
         </View>
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>About</Text>
         <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>Privacy Policy </Text>
+          <Text style={styles.infoText}>Privacy Policy</Text>
           <Text style={styles.infoText}>Version: 0.8</Text>
         </View>
       </View>
+      <TouchableOpacity style={styles.editButton} onPress={() => setEditModalVisible(true)}>
+        <Text style={styles.buttonText}>Edit Profile</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={handleSignOut}>
         <Text style={styles.buttonText}>Sign Out</Text>
       </TouchableOpacity>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={editModalVisible}
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <TextInput
+              style={styles.modalInput}
+              onChangeText={setUsername}
+              value={username}
+              placeholder="Username"
+            />
+            <TextInput
+              style={styles.modalInput}
+              onChangeText={(text) => auth.currentUser.updateEmail(text)}
+              value={auth.currentUser?.email}
+              placeholder="Email"
+            />
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={() => {
+                setEditModalVisible(false);
+              }}
+            >
+              <Text style={styles.saveButtonText}>Save Profile</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -87,41 +122,8 @@ const styles = {
     fontWeight: 'bold',
     marginTop: 10,
   },
-  bioContainer: {
-    padding: 15,
-  },
-  bioText: {
-    fontSize: 16,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  statContainer: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statCount: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  statLabel: {
-    fontSize: 16,
-    color: '#999',
-  },
-  button: {
-    backgroundColor: '#199988',
-    borderRadius: 5,
-    padding: 10,
-    margin: 20,
-  },
-  buttonText: {
-    fontSize: 16,
-    color: '#fff',
-    textAlign: 'center',
-  },
   section: {
+    // backgroundColor: '#E1F0DA',
     padding: 10,
     marginTop: 5,
     marginLeft: 15,
@@ -133,7 +135,7 @@ const styles = {
     marginBottom: 10,
   },
   infoContainer: {
-    backgroundColor: '#E1F0DA', // Slightly different gray for the list background
+    backgroundColor: '#D4E7C5', // Slightly different gray for the list background
     borderRadius: 10,
     padding: 10,
   },
@@ -141,6 +143,70 @@ const styles = {
     fontSize: 16,
     marginBottom: 10,
   },
-};
+  editButton: {
+    backgroundColor: '#000000', // Black color for edit button
+    borderRadius: 5,
+    padding: 10,
+    marginLeft: 20,
+    marginRight: 20,
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  button: {
+    backgroundColor: '#199988', // Sign out button color
+    borderRadius: 5,
+    padding: 10,
+    margin: 20,
+    alignItems: 'center',
+  },
+  buttonText: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background for modal
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5
+  },
+  modalInput: {
+    width: '90%', // Set width to 90% to match the button
+    marginBottom: 15,
+    padding: 10,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 5,
+  },
+  saveButton: {
+    width: '90%', // Ensure the button also has a width of 90%
+    backgroundColor: '#199988',
+    borderRadius: 5,
+    padding: 10,
+    marginTop: 10,
+    alignItems: 'center', // Center the text inside the button
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+});
 
 export default Profile;
