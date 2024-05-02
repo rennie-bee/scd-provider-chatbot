@@ -16,9 +16,6 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
-# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 # Pinecone and OpenAI configuration
 app.config['PINECONE_API_KEY'] = os.getenv('PINECONE_API_KEY')
 app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
@@ -124,11 +121,105 @@ def chat(user_id, session_id):
         return jsonify({'error': 'No message provided'}), 400
 
     user_input_timestamp = datetime.now(timezone.utc)
-    # Retrive previous chat messages
+    # Retrieve previous chat messages
     history = []
     history.append(('assistant', 'What would you like to chat about?'))
     # Construct the session_id to use in querying messages
     user_session_id = f"{user_id}#{session_id}"
+    # Query for messages using the composite message_id key
+    try:
+        message_response = chat_message_table.query(
+            KeyConditionExpression=Key('user_session_id').eq(user_session_id),
+            ScanIndexForward=True  # True for ascending order of the sort key
+        )
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+
+    messages = message_response['Items']
+    for message in messages:
+        history.append(('user', message['user_input']))
+        history.append(('assistant', message['chatbot_response']))
+
+    # Initialize head agent of LLM model
+    head_agent = HeadAgent(
+        openai_key=app.config['OPENAI_API_KEY'], 
+        pinecone_key=app.config['PINECONE_API_KEY'], 
+        pinecone_index_name=app.config['PINECONE_INDEX_NAME'],
+        messages=history
+    )
+    # Set up chat mode, e.g. chatty
+    head_agent.setup_sub_agents()
+
+    # Get response from the LLM model
+    chatbot_response = head_agent.process_input(user_input)
+    chatbot_response_timestamp = datetime.now(timezone.utc)
+    message_id = str(uuid.uuid4()) # Generate a unique message ID 
+    timestamp = datetime.now(timezone.utc)
+
+    chat_message = ChatMessage(
+        user_id=user_id, 
+        session_id=session_id, 
+        message_id=message_id,
+        timestamp=timestamp, 
+        user_input=user_input, 
+        user_input_timestamp=user_input_timestamp, 
+        chatbot_response=chatbot_response, 
+        chatbot_response_timestamp=chatbot_response_timestamp
+    )
+
+    # Save chat message
+    try:
+        chat_message.save(chat_message_table)
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+
+    # Update the session's end_time to the latest activity time
+    try:
+        chat_session_table.update_item(
+            Key={
+                'user_id': user_id,
+                'session_id': session_id
+            },
+            UpdateExpression='SET end_time = :val',
+            ExpressionAttributeValues={
+                ':val': timestamp.isoformat()
+            },
+            ReturnValues='UPDATED_NEW'
+        )
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+
+    return jsonify({'response': chatbot_response}), 200
+
+######################################################################
+#  REGENERATE CHATBOT RESPONSE
+######################################################################
+@app.route('/chat/<string:user_id>/<string:session_id>/<string:message_id/regenerate', methods=['POST'])
+def chat(user_id, session_id, message_id):
+    data = request.get_json()
+    user_input = data.get('user_input', '')
+    
+    if not user_input:
+        return jsonify({'error': 'No message provided'}), 400
+    
+    user_input_timestamp = datetime.now(timezone.utc)
+    # Construct the session_id to use in deleting and querying messages
+    user_session_id = f"{user_id}#{session_id}"
+    # Delete chat message with the same id
+    try:
+        chat_message_table.delete_item(
+            Key={
+                'user_session_id': user_session_id,
+                'message_id': message_id # Use GSI to delete message
+            }
+        )
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+
+    # Retrieve previous chat messages
+    history = []
+    history.append(('assistant', 'What would you like to chat about?'))
+
     # Query for messages using the composite message_id key
     try:
         message_response = chat_message_table.query(
