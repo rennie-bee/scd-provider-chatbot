@@ -11,14 +11,14 @@ from unstructured.cleaners.core import clean_extra_whitespace
 import openai
 
 class EmbeddingProcessor:
-    def __init__(self, file_stream, doc_type):
+    def __init__(self, file_stream, doc_type, api_key, openai_key, index_name):
         self.file_stream = file_stream
         self.doc_type = doc_type
         self.loader = None
         self.concat_text = {}
-        self.api_key = os.getenv('PINECONE_API_KEY')
-        self.openai_key = os.getenv('OPENAI_API_KEY')
-        self.index_name = 'scd001'
+        self.api_key = api_key
+        self.openai_key = openai_key
+        self.index_name = index_name
         self.namespace = 'ns001'
         self.genre = 'scd'
         self._setup_clients()

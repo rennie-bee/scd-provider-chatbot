@@ -1,10 +1,14 @@
 import boto3
 import os
+import uuid
 from flask import Flask, request, jsonify, render_template
-from models import UserProfile
 from flask_cors import CORS
 from dotenv import load_dotenv
+from datetime import datetime, timezone
+from boto3.dynamodb.conditions import Key
+from models import UserProfile, ChatSession, ChatMessage
 from embeddings import EmbeddingProcessor
+from chatbotLLM import HeadAgent
 
 # Load environment variables from .env file
 load_dotenv()
@@ -15,19 +19,38 @@ CORS(app)
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
 # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Amazon S3 Client Configuration
+# Pinecone and OpenAI configuration
+app.config['PINECONE_API_KEY'] = os.getenv('PINECONE_API_KEY')
+app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
+app.config['PINECONE_INDEX_NAME'] = os.getenv('PINECONE_INDEX_NAME')
+
+# AWS Environment Variables
 app.config['AWS_REGION'] = os.getenv('AWS_REGION')
 app.config['AWS_S3_USER_IMAGE_BUCKET'] = os.getenv('AWS_S3_USER_IMAGE_BUCKET')
-app.config['AWS_ACCESS_KEY'] = os.getenv('AWS_ACCESS_KEY')
+app.config['AWS_ACCESS_KEY_ID'] = os.getenv('AWS_ACCESS_KEY_ID')
 app.config['AWS_SECRET_ACCESS_KEY'] = os.getenv('AWS_SECRET_ACCESS_KEY')
 app.config['AWS_S3_SCD_DATA_BUCKET'] = os.getenv('AWS_S3_SCD_DATA_BUCKET')
 
+# Amazon S3 Client Configuration
 s3_client = boto3.client(
     's3',
-    aws_access_key_id=app.config['AWS_ACCESS_KEY'],
+    aws_access_key_id=app.config['AWS_ACCESS_KEY_ID'],
     aws_secret_access_key=app.config['AWS_SECRET_ACCESS_KEY'],
     region_name=app.config['AWS_REGION']
 )
+
+# AWS DynamoDB Configuration
+dynamodb = boto3.resource(
+        'dynamodb',
+        aws_access_key_id=app.config['AWS_ACCESS_KEY_ID'],
+        aws_secret_access_key=app.config['AWS_SECRET_ACCESS_KEY'],
+        region_name=app.config['AWS_REGION']
+    )
+
+# AWS DynamoDB Tables
+user_profile_table = dynamodb.Table('UserProfile')
+chat_session_table = dynamodb.Table('ChatSession')
+chat_message_table = dynamodb.Table('ChatMessage')
 
 ######################################################################
 #  GET INDEX
@@ -59,7 +82,13 @@ def create_embeddings():
         file_stream = response['Body']
 
         # Instantiate and process using the EmbeddingProcessor
-        processor = EmbeddingProcessor(file_stream, doc_type)
+        processor = EmbeddingProcessor(
+            file_stream=file_stream, 
+            doc_type=doc_type,
+            api_key=app.config['PINECONE_API_KEY'],
+            openai_key=app.config['OPENAI_API_KEY'],
+            index_name=app.config['PINECONE_INDEX_NAME']
+        )
         processor.process()
 
         return jsonify({"message": "Embeddings created and uploaded successfully.", "status": "success"}), 200
@@ -73,12 +102,20 @@ def create_embeddings():
 ######################################################################
 @app.route('/chat/<string:user_id>/start_session', methods=['POST'])
 def start_chat(user_id):
-    pass
+    # Generate a unique session ID
+    session_id = str(uuid.uuid4())
+    start_time = datetime.now(timezone.utc)
+
+    # Create and save the new chat session
+    chat_session = ChatSession(user_id, session_id, start_time)
+    chat_session.save(chat_session_table)
+
+    return jsonify({'session_id': session_id}), 200
 
 ######################################################################
 #  HANDLE IN-PROGRESS CHAT SESSION
 ######################################################################
-@app.route('/chat/<string:user_id>/<int:session_id>', methods=['POST'])
+@app.route('/chat/<string:user_id>/<string:session_id>', methods=['POST'])
 def chat(user_id, session_id):
     data = request.get_json()
     user_input = data.get('user_input', '')
@@ -86,25 +123,124 @@ def chat(user_id, session_id):
     if not user_input:
         return jsonify({'error': 'No message provided'}), 400
 
-    response = simple_chatbot_logic(user_input)
-    return jsonify({'response': response})
+    user_input_timestamp = datetime.now(timezone.utc)
+    # Retrive previous chat messages
+    history = []
+    history.append(('assistant', 'What would you like to chat about?'))
+    # Construct the session_id to use in querying messages
+    user_session_id = f"{user_id}#{session_id}"
+    # Query for messages using the composite message_id key
+    try:
+        message_response = chat_message_table.query(
+            KeyConditionExpression=Key('user_session_id').eq(user_session_id),
+            ScanIndexForward=True  # True for ascending order of the sort key
+        )
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
 
-######################################################################
-#  END CHAT SESSION
-######################################################################
-@app.route('/chat/<string:user_id>/<int:session_id>/end_session', methods=['POST'])
-def end_chat(user_id, session_id):
-    pass
+    messages = message_response['Items']
+    for message in messages:
+        history.append(('user', message['user_input']))
+        history.append(('assistant', message['chatbot_response']))
+
+    # Initialize head agent of LLM model
+    head_agent = HeadAgent(
+        openai_key=app.config['OPENAI_API_KEY'], 
+        pinecone_key=app.config['PINECONE_API_KEY'], 
+        pinecone_index_name=app.config['PINECONE_INDEX_NAME'],
+        messages=history
+    )
+    # Set up chat mode, e.g. chatty
+    head_agent.setup_sub_agents()
+
+    # Get response from the LLM model
+    chatbot_response = head_agent.process_input(user_input)
+    chatbot_response_timestamp = datetime.now(timezone.utc)
+    message_id = str(uuid.uuid4()) # Generate a unique message ID 
+    timestamp = datetime.now(timezone.utc)
+
+    chat_message = ChatMessage(
+        user_id=user_id, 
+        session_id=session_id, 
+        message_id=message_id,
+        timestamp=timestamp, 
+        user_input=user_input, 
+        user_input_timestamp=user_input_timestamp, 
+        chatbot_response=chatbot_response, 
+        chatbot_response_timestamp=chatbot_response_timestamp
+    )
+
+    # Save chat message
+    try:
+        chat_message.save(chat_message_table)
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+
+    # Update the session's end_time to the latest activity time
+    try:
+        chat_session_table.update_item(
+            Key={
+                'user_id': user_id,
+                'session_id': session_id
+            },
+            UpdateExpression='SET end_time = :val',
+            ExpressionAttributeValues={
+                ':val': timestamp.isoformat()
+            },
+            ReturnValues='UPDATED_NEW'
+        )
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+
+    return jsonify({'response': chatbot_response}), 200
 
 ######################################################################
 #  RETRIEVE CHAT HISTORY
 ######################################################################
 @app.route('/chat/<string:user_id>/history', methods=['GET'])
 def get_chat_history(user_id):
-    pass
+    # Retrieve all sessions for the user
+    try:
+        session_response = chat_session_table.query(
+            KeyConditionExpression=Key('user_id').eq(user_id)
+        )
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+    
+    # Convert sessions to list and sort by 'end_time' (handling None values as ongoing sessions)
+    sessions = session_response['Items']
+    sorted_sessions = sorted(
+        sessions,
+        key=lambda x: x.get('end_time', '9999-12-31T23:59:59'),  # Sort ongoing sessions as the most recent
+        reverse=True  # Use reverse to sort from the most recently ended to the oldest
+    )
+
+    history = []
+    for session in sorted_sessions:
+        session_id = session['session_id']
+        # Construct the session_id to use in querying messages
+        user_session_id = f"{user_id}#{session_id}"
+        # Query for messages using the composite message_id key
+        try:
+            message_response = chat_message_table.query(
+                KeyConditionExpression=Key('user_session_id').eq(user_session_id),
+                ScanIndexForward=True  # True for ascending order of the sort key
+            )
+        except Exception as e:
+            return jsonify({'message': str(e), 'status': 'error'}), 500
+        # Append messages along with session information
+        history.append({
+            'session_id': session_id,
+            'start_time': session['start_time'],
+            'end_time': session.get('end_time'),
+            'messages': message_response['Items']
+        })
+
+
+    return jsonify({'history': history}), 200
 
 ######################################################################
-#  GENERATE PRESIGNED URL FOR USER IMAGE UPLOAD AND RETRIEVE
+#  GENERATE PRESIGNED URL FOR USER IMAGE UPLOAD
 ######################################################################
 @app.route('/generate-presigned-url/<string:filename>', methods=['GET'])
 def get_presigned_url(filename):
@@ -123,61 +259,73 @@ def get_presigned_url(filename):
 @app.route('/profile', methods=['POST'])
 def add_user_profile():
     data = request.get_json()
-    user_id = data.get('user_id')
-    first_name = data.get('first_name')
-    last_name = data.get('last_name')
-    medical_id = data.get('medical_id')
-    preferred_name = data.get('preferred_name')
-    email = data.get('email')
     image_name = data.get('image_name')
-    expertise = data.get('expertise')
 
+    # Construct the full S3 URL from the filename if image_name is provided
     if image_name:
-        # Construct the full S3 URL from the filename
-        image_url = f"https://{app.config['AWS_S3_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{image_name}"
+        image_url = f"https://{app.config['AWS_S3_USER_IMAGE_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{image_name}"
     else:
         image_url = None
 
+    # Create an instance of UserProfile with the provided and constructed data
     user_profile = UserProfile(
-        user_id=user_id,
-        first_name=first_name,
-        last_name=last_name,
-        medical_id=medical_id,
-        preferred_name=preferred_name,
-        email=email,
+        user_id=data.get('user_id'),
+        first_name=data.get('first_name'),
+        last_name=data.get('last_name'),
+        medical_id=data.get('medical_id'),
+        preferred_name=data.get('preferred_name'),
+        email=data.get('email'),
         user_image=image_url,
-        expertise=expertise
+        expertise=data.get('expertise')
     )
-    user_profile.save()
-    return jsonify({'message': 'User profile added successfully'}), 201
+
+    # Save the user profile to DynamoDB
+    try:
+        user_profile.save(user_profile_table)
+        return jsonify({'message': 'User profile added successfully'}), 201
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
 
 ######################################################################
 #  UPDATE EXISTING USER PROFILE
 ######################################################################
 @app.route('/profile/<string:user_id>', methods=['PUT'])
 def update_user_profile(user_id):
-    user_profile = UserProfile.get(user_id)
-    if not user_profile:
-        return jsonify({'error': 'User not found'}), 404
-
     data = request.get_json()
-
     if not data:
-        return jsonify({'error': 'No data provided'}, 400)
+        return jsonify({'error': 'No data provided'}), 400
 
-    user_profile.first_name = data.get('first_name', user_profile.first_name)
-    user_profile.last_name = data.get('last_name', user_profile.last_name)
-    user_profile.medical_id = data.get('medical_id', user_profile.medical_id)
-    user_profile.preferred_name = data.get('preferred_name', user_profile.preferred_name)
-    user_profile.email = data.get('email', user_profile.email)
-    user_profile.expertise = data.get('expertise', user_profile.expertise)
+    # Prepare the update expression and attribute values
+    update_expression = "set "
+    expression_attribute_values = {}
+    for key, value in data.items():
+        if key == 'image_name':
+            continue  # Skip image_name here, handle separately
+        update_expression += f"{key} = :{key}, "
+        expression_attribute_values[f":{key}"] = value
 
-    # Check if a new image filename is provided to update the image URL
+    # Special handling for image URL if image_name is provided
     if 'image_name' in data:
-        user_profile.user_image = f"https://{app.config['AWS_S3_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{data.get('image_name')}"
+        image_url = f"https://{app.config['AWS_S3_USER_IMAGE_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{data['image_name']}"
+        update_expression += "user_image = :user_image, "
+        expression_attribute_values[":user_image"] = image_url
 
-    user_profile.save()
-    return jsonify({'message': 'User profile updated'}), 200
+    # Remove the trailing comma from the update expression
+    if update_expression.endswith(", "):
+        update_expression = update_expression[:-2]
+
+    # Update the item in DynamoDB with a condition that the item must exist
+    try:
+        user_profile_table.update_item(
+            Key={'user_id': user_id},
+            UpdateExpression=update_expression,
+            ExpressionAttributeValues=expression_attribute_values,
+            ConditionExpression="attribute_exists(user_id)",
+            ReturnValues="UPDATED_NEW"
+        )
+        return jsonify({'message': 'User profile updated'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 ######################################################################
@@ -185,7 +333,7 @@ def update_user_profile(user_id):
 ######################################################################
 @app.route('/profile/<string:user_id>', methods=['GET'])
 def get_user_profile(user_id):
-    user_profile = UserProfile.get(user_id)
+    user_profile = UserProfile.get(user_id, user_profile_table)
     if not user_profile:
         return jsonify({'error': 'User not found'}), 404
     
@@ -199,7 +347,7 @@ def get_user_profile(user_id):
         'user_image': user_profile.user_image,
         'expertise': user_profile.expertise
     }
-    return jsonify(user_data)
+    return jsonify(user_data), 200
 
 ######################################################################
 #  RETRIEVE FAQ
