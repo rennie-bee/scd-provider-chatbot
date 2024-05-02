@@ -91,6 +91,7 @@ class ChatMessage:
         # Creating a composite partition key
         self.user_session_id = f"{user_id}#{session_id}"
         self.message_id = message_id
+        # Timestamp as sort key
         self.timestamp = timestamp if isinstance(timestamp, str) else timestamp.isoformat()
         self.user_input = user_input
         self.chatbot_response = chatbot_response

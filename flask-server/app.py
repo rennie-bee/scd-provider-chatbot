@@ -125,31 +125,32 @@ def chat(user_id, session_id):
 
     user_input_timestamp = datetime.now(timezone.utc)
     # Retrive previous chat messages
-    messages = []
+    history = []
+    history.append(('assistant', 'What would you like to chat about?'))
     # Construct the session_id to use in querying messages
     user_session_id = f"{user_id}#{session_id}"
     # Query for messages using the composite message_id key
     try:
         message_response = chat_message_table.query(
-            KeyConditionExpression=Key('user_session_id').eq(user_session_id)
+            KeyConditionExpression=Key('user_session_id').eq(user_session_id),
+            ScanIndexForward=True  # True for ascending order of the sort key
         )
     except Exception as e:
         return jsonify({'message': str(e), 'status': 'error'}), 500
 
-    # Sort messages in chronologically increasing order
-    sorted_messages = sorted(message_response['Items'], key=lambda x: x['timestamp'])
-    for message in sorted_messages:
-        messages.append(('user', message['user_input']))
-        messages.append(('assistant', message['chatbot_response']))
+    messages = message_response['Items']
+    for message in messages:
+        history.append(('user', message['user_input']))
+        history.append(('assistant', message['chatbot_response']))
 
     # Initialize head agent of LLM model
     head_agent = HeadAgent(
         openai_key=app.config['OPENAI_API_KEY'], 
         pinecone_key=app.config['PINECONE_API_KEY'], 
         pinecone_index_name=app.config['PINECONE_INDEX_NAME'],
-        messages=messages
+        messages=history
     )
-
+    # Set up chat mode, e.g. chatty
     head_agent.setup_sub_agents()
 
     # Get response from the LLM model
@@ -222,7 +223,8 @@ def get_chat_history(user_id):
         # Query for messages using the composite message_id key
         try:
             message_response = chat_message_table.query(
-                KeyConditionExpression=Key('user_session_id').eq(user_session_id)
+                KeyConditionExpression=Key('user_session_id').eq(user_session_id),
+                ScanIndexForward=True  # True for ascending order of the sort key
             )
         except Exception as e:
             return jsonify({'message': str(e), 'status': 'error'}), 500
@@ -231,7 +233,7 @@ def get_chat_history(user_id):
             'session_id': session_id,
             'start_time': session['start_time'],
             'end_time': session.get('end_time'),
-            'messages': sorted(message_response['Items'], key=lambda x: x['timestamp'])
+            'messages': message_response['Items']
         })
 
 
