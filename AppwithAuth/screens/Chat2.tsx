@@ -96,10 +96,10 @@ export default function Chat2() {
         });
 
         if(updateResponse.ok) {
-          console.log('Update timestamp successfully', response.status);
+          console.log('Update timestamp successfully', updateResponse.status);
         }
         else {
-          console.error('Failed to update message timestamp', response.status);
+          console.error('Failed to update message timestamp', updateResponse.status);
         }
       } else {
         console.error('Failed to send message:', response.status);
