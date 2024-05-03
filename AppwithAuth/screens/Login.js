@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Alert, TextInput, Button, StyleSheet, ScrollView } from 'react-native';
 import { initializeApp } from '@firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from '@firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from '@firebase/auth';
 import { useNavigation } from '@react-navigation/native';
-
+import { getFirestore } from '@firebase/firestore';
+import { doc, setDoc } from '@firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDMdsOdPr2dzUT8-34g1xElSi2lrzOKLi0",
@@ -17,12 +18,35 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-const AuthScreen = ({ email, setEmail, password, setPassword, isLogin, setIsLogin, handleAuthentication }) => {
+export { db }; 
+
+const createUserProfile = async (userId, displayName) => {
+  try {
+    await setDoc(doc(db, 'users', userId), {
+      displayName: displayName,
+    });
+    console.log('User profile created successfully in Firestore!');
+  } catch (error) {
+    console.error('Error creating user profile:', error);
+  }
+};
+
+const AuthScreen = ({ email, setEmail, password, setPassword, displayName, setDisplayName, isLogin, setIsLogin, handleAuthentication }) => {
   return (
     <View style={styles.authContainer}>
        <Text style={styles.title}>{isLogin ? 'Sign In' : 'Sign Up'}</Text>
-
+       
+       {!isLogin && (
+        <TextInput
+          style={styles.input}
+          value={displayName}
+          onChangeText={setDisplayName}
+          placeholder="Name"
+          autoCapitalize="words"
+        />
+      )}
        <TextInput
         style={styles.input}
         value={email}
@@ -66,6 +90,7 @@ const AuthScreen = ({ email, setEmail, password, setPassword, isLogin, setIsLogi
 export default Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [user, setUser] = useState(null); // Track user authentication state
   const [isLogin, setIsLogin] = useState(true);
 
@@ -94,6 +119,10 @@ export default Login = () => {
       } else {
         // Sign up
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(auth.currentUser, {
+          displayName: displayName
+        });
+        await createUserProfile(auth.currentUser.uid, displayName);
         console.log('User created successfully!');
         uid = userCredential.user.uid;
       }
@@ -113,6 +142,8 @@ export default Login = () => {
           setEmail={setEmail}
           password={password}
           setPassword={setPassword}
+          displayName={displayName}
+          setDisplayName={setDisplayName}
           isLogin={isLogin}
           setIsLogin={setIsLogin}
           handleAuthentication={handleAuthentication}
@@ -124,6 +155,8 @@ export default Login = () => {
           setEmail={setEmail}
           password={password}
           setPassword={setPassword}
+          displayName={displayName}
+          setDisplayName={setDisplayName}
           isLogin={isLogin}
           setIsLogin={setIsLogin}
           handleAuthentication={handleAuthentication}

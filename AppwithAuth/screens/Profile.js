@@ -30,13 +30,13 @@ const Profile = () => {
             style={styles.profilePhoto}
             source={{uri: 'https://st2.depositphotos.com/4060975/9157/v/450/depositphotos_91577612-stock-illustration-doctor-colored-vector-icon.jpg'}}
           />
-          <Text style={styles.nameText}>Username</Text>
+          <Text style={styles.nameText}>{auth.currentUser?.displayName}</Text>
         </View>
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>Full Name: Username</Text>
+          <Text style={styles.infoText}>Full Name: {auth.currentUser?.displayName}</Text>
           <Text style={styles.infoText}>Email: {auth.currentUser?.email}</Text>
           <Text style={styles.infoText}>Medical ID: 000001</Text>
         </View>

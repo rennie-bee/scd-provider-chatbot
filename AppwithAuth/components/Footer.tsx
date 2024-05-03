@@ -37,7 +37,9 @@ const Footer: React.FC<FooterProps> = ({ onSendMessage, qna }) => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ width: '100%' }}>
+      style={{ width: '100%' }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 85 : 0}  // Adjust based on your footer's height
+    >
       <View style={styles.container}>
         <TouchableOpacity onPress={() => setShowModal(true)}>
           <Ionicons name="help-circle" size={24} color="#607274" />
@@ -48,7 +50,7 @@ const Footer: React.FC<FooterProps> = ({ onSendMessage, qna }) => {
           onChangeText={setMessage}
           placeholder="Type a message..."
         />
-        <TouchableOpacity onPress={() => onSendMessage(message)}>
+        <TouchableOpacity onPress={handleSendMessage}>
           <Ionicons name="send" size={24} color="#607274" />
         </TouchableOpacity>
 

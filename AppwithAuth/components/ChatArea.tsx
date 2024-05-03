@@ -1,20 +1,39 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, Alert, Clipboard, TouchableWithoutFeedback } from 'react-native';
-import { Message } from '../components/types'; // Ensure this import path matches your project structure
+import { ScrollView, StyleSheet, Text, View, Alert, Clipboard, TouchableWithoutFeedback, KeyboardAvoidingView } from 'react-native';
+
+interface Message {
+  id: string;
+  text: string;
+  type: 'sent' | 'received';
+  timestamp: string;
+}
 
 interface ChatAreaProps {
   messages: Message[];
 }
 
 const ChatArea: React.FC<ChatAreaProps> = ({ messages }) => {
-  const handleLongPress = (text) => {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const handleLongPress = (text: string, id: string) => {
     Alert.alert(
       'Select Operation',
       'Choose what you want to do with this text:',
       [
-        { text: 'Copy', onPress: () => Clipboard.setString(text) },
-        { text: 'Select Text', onPress: () => console.log('Select Text') },
-        { text: 'Cancel', onPress: () => console.log('Cancelled'), style: 'cancel' },
+        {
+          text: 'Copy', onPress: () => {
+            Clipboard.setString(text);
+            Alert.alert("Copied to clipboard!");
+            setSelectedId(null);  // Optionally deselect after action
+          }
+        },
+        {
+          text: 'Select Text', onPress: () => {
+            setSelectedId(id);
+            Alert.alert("Message Selected!");
+          }
+        },
+        { text: 'Cancel', onPress: () => setSelectedId(null), style: 'cancel' },
       ],
       { cancelable: true }
     );
@@ -22,36 +41,43 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages }) => {
   console.log('ChatArea');
   console.log(messages);
   return (
-    <ScrollView style={styles.chatContainer}>
-      {messages.map((message) => (
-        <TouchableWithoutFeedback key={message.id} onLongPress={() => handleLongPress(message.text)}>
-          <View
-            style={{
-              alignItems: message.type === 'sent' ? 'flex-end' : 'flex-start',
-            }}>
-            <Text style={styles.timestamp}>{message.timestamp}</Text>
+    <KeyboardAvoidingView style={styles.container} behavior="padding" enabled>
+      <ScrollView style={styles.chatContainer}>
+        {messages.map((message) => (
+          <TouchableWithoutFeedback key={message.id} onLongPress={() => handleLongPress(message.text, message.id)}>
             <View
-              style={[
-                styles.message,
-                message.type === 'sent'
-                  ? styles.sentMessage
-                  : styles.receivedMessage,
-              ]}>
-              <Text
-                style={{
-                  color: message.type === 'sent' ? '#ffffff' : '#000000',
-                }}>
-                {message.text}
-              </Text>
+              style={{
+                alignItems: message.type === 'sent' ? 'flex-end' : 'flex-start',
+              }}
+            >
+              <Text style={styles.timestamp}>{message.timestamp}</Text>
+              <View
+                style={[
+                  styles.message,
+                  message.type === 'sent' ? styles.sentMessage : styles.receivedMessage,
+                  message.id === selectedId ? styles.selectedText : null, // Apply selected style if id matches
+                ]}
+              >
+                <Text
+                  style={{
+                    color: message.type === 'sent' ? '#ffffff' : '#000000',
+                  }}
+                >
+                  {message.text}
+                </Text>
+              </View>
             </View>
-          </View>
-        </TouchableWithoutFeedback>
-      ))}
-    </ScrollView>
+          </TouchableWithoutFeedback>
+        ))}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   chatContainer: {
     flex: 1,
     padding: 10,
@@ -63,13 +89,16 @@ const styles = StyleSheet.create({
     maxWidth: '70%',
   },
   sentMessage: {
-    backgroundColor: '#199988', // Primary Color for sent messages
+    backgroundColor: '#199988',
   },
   receivedMessage: {
-    backgroundColor: '#e9edee', // Accent Color 2 for received messages
+    backgroundColor: '#e9edee',
+  },
+  selectedText: {
+    backgroundColor: '#f0e68c', // Highlight color when text is "selected"
   },
   timestamp: {
-    color: '#979a9b', // Accent Color 1
+    color: '#979a9b',
   },
 });
 
