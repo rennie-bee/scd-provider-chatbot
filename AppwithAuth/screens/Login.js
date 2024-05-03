@@ -79,22 +79,25 @@ export default Login = () => {
   }, [auth]);
 
   const navigation = useNavigation()
-  const gotoChat = () => {
-      navigation.navigate('Chat')
+  const gotoChat = (id) => {
+      navigation.navigate('Chat', { userId: id })
   }
   
   const handleAuthentication = async () => {
     try {
+      let uid; // Retrieve uid
       if (isLogin) {
         // Sign in
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         console.log('User signed in successfully!');
+        uid = userCredential.user.uid;
       } else {
         // Sign up
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         console.log('User created successfully!');
+        uid = userCredential.user.uid;
       }
-      gotoChat();
+      gotoChat(uid); // Pass uid to chat page
     } catch (error) {
       Alert.alert('Authentication error:', error.message);
     }

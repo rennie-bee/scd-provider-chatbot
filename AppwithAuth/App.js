@@ -5,6 +5,8 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Chat from "./screens/Chat2";
 import Login from "./screens/Login";
 import Profile from "./screens/Profile";
+import 'react-native-get-random-values';
+
 
 const Stack = createNativeStackNavigator();
 

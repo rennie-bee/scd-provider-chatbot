@@ -115,12 +115,16 @@ def start_chat(user_id):
 @application.route('/chat/<string:user_id>/<string:session_id>', methods=['POST'])
 def chat(user_id, session_id):
     data = request.get_json()
-    user_input = data.get('user_input', '')
+    user_input = data.get('user_input')
+    message_id = data.get('message_id')
+    user_input_timestamp = data.get('timestamp')
     
     if not user_input:
-        return jsonify({'error': 'No message provided'}), 400
+        return jsonify({'error': 'No user input provided'}), 400
+    if not message_id:
+        return jsonify({'error': 'No message id provided'}), 400
 
-    user_input_timestamp = datetime.now(timezone.utc)
+    # user_input_timestamp = datetime.now(timezone.utc)
     # Retrieve previous chat messages
     history = []
     history.append(('assistant', 'What would you like to chat about?'))
@@ -152,8 +156,8 @@ def chat(user_id, session_id):
 
     # Get response from the LLM model
     chatbot_response = head_agent.process_input(user_input)
-    chatbot_response_timestamp = datetime.now(timezone.utc)
-    message_id = str(uuid.uuid4()) # Generate a unique message ID 
+    chatbot_response_timestamp = user_input_timestamp
+    # message_id = uuid() # Generate a unique message ID 
     timestamp = datetime.now(timezone.utc)
 
     chat_message = ChatMessage(
@@ -189,7 +193,50 @@ def chat(user_id, session_id):
     except Exception as e:
         return jsonify({'message': str(e), 'status': 'error'}), 500
 
-    return jsonify({'response': chatbot_response}), 200
+    return jsonify({'message_id': message_id, 'response': chatbot_response}), 200
+
+######################################################################
+#  UPDATE CHATBOT RESPONSE TIMESTAMP
+######################################################################
+@application.route('/chat/<string:user_id>/<string:session_id>/<string:message_id>/timestamp', methods=['PUT'])
+def update_chatbot_response_timestamp(user_id, session_id, message_id):
+    data = request.get_json()
+    
+    chatbot_response_timestamp = data.get('timestamp')
+    if not chatbot_response_timestamp:
+        return jsonify({'error': 'Missing timestamp'}), 400
+
+    # Use the GSI to get the primary key values
+    try:
+        response = chat_message_table.query(
+            IndexName='user_session_id-message_id-index',
+            KeyConditionExpression='user_session_id = :usi AND message_id = :mi',
+            ExpressionAttributeValues={
+                ':usi': f"{user_id}#{session_id}",
+                ':mi': message_id
+            }
+        )
+        items = response['Items']
+        if not items:
+            return jsonify({'error': 'No item found with the given ID'}), 404
+        
+        primary_key = items[0]['user_session_id']  # Replace 'PrimaryKey' with the name of your table's primary key attribute
+        sort_key = items[0]['timestamp']
+        # Update the item in the main table
+        chat_message_table.update_item(
+            Key={
+                'user_session_id': primary_key,
+                'timestamp': sort_key
+            },
+            UpdateExpression='SET chatbot_response_timestamp = :val',
+            ExpressionAttributeValues={
+                ':val': chatbot_response_timestamp
+            },
+            ReturnValues="UPDATED_NEW"
+        )
+        return jsonify({'message': 'Chatbot response timestamp updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 ######################################################################
 #  REGENERATE CHATBOT RESPONSE
@@ -197,7 +244,7 @@ def chat(user_id, session_id):
 @application.route('/chat/<string:user_id>/<string:session_id>/<string:message_id>/regenerate', methods=['POST'])
 def regenerate_answer(user_id, session_id, message_id):
     data = request.get_json()
-    user_input = data.get('user_input', '')
+    user_input = data.get('user_input')
     
     if not user_input:
         return jsonify({'error': 'No message provided'}), 400
@@ -450,23 +497,6 @@ def get_faq():
 ######################################################################
 #  U T I L I T Y   F U N C T I O N S
 ######################################################################
-
-def simple_chatbot_logic(user_input):
-    """
-    A very simple chatbot logic that responds to user input.
-    In the future, this could be replaced with more complex logic or AI.
-    """
-    if user_input.lower() == 'hello':
-        return "Hello! How can I help you today?"
-    elif user_input.lower() == 'bye':
-        return "Goodbye! Have a great day!"
-    elif user_input.lower() == 'thank you':
-        return "You're welcome"
-    elif user_input.lower() == 'what is scd?':
-        return "Sickle cell disease (SCD) and its variants are genetic disorders resulting from the presence of a mutated form of hemoglobin, hemoglobin S (HbS). The most common form of SCD found in North America is homozygous HbS disease (HbSS), an autosomal recessive disorder first described by Herrick in 1910. SCD causes significant morbidity and mortality, particularly in people of African and Mediterranean ancestry. Morbidity, frequency of crisis, degree of anemia, and the organ systems involved vary considerably from individual to individual."
-    else:
-        return "I'm not sure how to respond to that. Can you try asking something else?"
-
 def create_presigned_url(bucket_name, object_name, expiration=3600):
     try:
         response = s3_client.generate_presigned_url('put_object',
@@ -481,4 +511,4 @@ def create_presigned_url(bucket_name, object_name, expiration=3600):
 
 
 if __name__ == '__main__':
-    application.run(host='127.0.0.1', port=8080, debug=True)
+    application.run(host='10.20.128.246', port=8080, debug=True)

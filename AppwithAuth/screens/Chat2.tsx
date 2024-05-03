@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Keyboard,
   SafeAreaView,
@@ -6,48 +6,101 @@ import {
   StyleSheet,
   TouchableWithoutFeedback,
 } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import ChatArea from '../components/ChatArea';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
+import {v4 as uuidv4 } from 'uuid';
 import { Message } from '../components/types';
 
 // Assuming qna is defined as shown previously
 
 export default function Chat2() {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { userId } = route.params; // Retrieve userId passed from Login page
+  const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState<Message[]>([]);
+
+  useEffect(() => {
+    // Start session and retrieve session ID at the very beginning
+    const startSession = async () => {
+      try {
+        const response = await fetch(`http://10.20.128.246:8080/chat/${userId}/start_session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setSessionId(data.session_id);
+        } else {
+          console.error('Failed to start session:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    console.log(userId);
+    startSession();
+  }, [userId]);
 
   // Added fetch request to Flask backend
   const handleSendMessage = async (newMessage: string) => {
-    const now = new Date();
-    const timestamp = `${now.getHours()}:${now.getMinutes()}, ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    console.log(sessionId);
 
     const sentMessage: Message = {
       id: Date.now(),
+      message_id: uuidv4(),
       text: newMessage,
       type: 'sent',
-      timestamp,
+      timestamp: `${new Date().getHours()}:${new Date().getMinutes()}, ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
     };
+
     setMessages(currentMessages => [...currentMessages, sentMessage]);
 
     try {
       // Update the URL accordingly
-      const response = await fetch(`http://127.0.0.1:8080/chat/1dhyb/1`, {
+      const response = await fetch(`http://10.20.128.246:8080/chat/${userId}/${sessionId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ user_input: newMessage })
+        body: JSON.stringify({
+          message_id: sentMessage.message_id, 
+          user_input: sentMessage.text,
+          user_input_timestamp: sentMessage.timestamp
+        })
       });
 
       if (response.ok) {
         const data = await response.json();
         const receivedMessage: Message = {
           id: Date.now() + 1,
+          message_id: data.message_id,
           text: data.response,
           type: 'received',
-          timestamp,
+          timestamp: `${new Date().getHours()}:${new Date().getMinutes()}, ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
         };
+
         setMessages(currentMessages => [...currentMessages, receivedMessage]);
+        // Update chatbot response timestamp
+        const updateResponse = await fetch(`http://10.20.128.246:8080/chat/${userId}/${sessionId}/${receivedMessage.message_id}/timestamp`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            timestamp: receivedMessage.timestamp
+          })
+        });
+
+        if(updateResponse.ok) {
+          console.log('Update timestamp successfully', response.status);
+        }
+        else {
+          console.error('Failed to update message timestamp', response.status);
+        }
       } else {
         console.error('Failed to send message:', response.status);
       }

@@ -19,7 +19,8 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages }) => {
       { cancelable: true }
     );
   };
-
+  console.log('ChatArea');
+  console.log(messages);
   return (
     <ScrollView style={styles.chatContainer}>
       {messages.map((message) => (

@@ -96,8 +96,8 @@ class ChatMessage:
         self.user_input = user_input
         self.chatbot_response = chatbot_response
         # Ensure timestamps are string formatted
-        self.user_input_timestamp = user_input_timestamp if isinstance(user_input_timestamp, str) else user_input_timestamp.isoformat()
-        self.chatbot_response_timestamp = chatbot_response_timestamp if isinstance(chatbot_response_timestamp, str) else chatbot_response_timestamp.isoformat()
+        self.user_input_timestamp = user_input_timestamp
+        self.chatbot_response_timestamp = chatbot_response_timestamp
 
     def save(self, table):
         item = {
