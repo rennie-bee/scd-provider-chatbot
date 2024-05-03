@@ -38,11 +38,11 @@ s3_client = boto3.client(
 
 # AWS DynamoDB Configuration
 dynamodb = boto3.resource(
-        'dynamodb',
-        aws_access_key_id=application.config['AWS_ACCESS_KEY_ID'],
-        aws_secret_access_key=application.config['AWS_SECRET_ACCESS_KEY'],
-        region_name=application.config['AWS_REGION']
-    )
+    'dynamodb',
+    aws_access_key_id=application.config['AWS_ACCESS_KEY_ID'],
+    aws_secret_access_key=application.config['AWS_SECRET_ACCESS_KEY'],
+    region_name=application.config['AWS_REGION']
+)
 
 # AWS DynamoDB Tables
 user_profile_table = dynamodb.Table('UserProfile')
