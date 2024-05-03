@@ -118,17 +118,33 @@ export default Login = () => {
         uid = userCredential.user.uid;
       } else {
         // Sign up
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        if (!displayName) {
+          Alert.alert('Authentication Error:', 'Please provide a name.');
+          return;
+        }
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password, displayName);
         await updateProfile(auth.currentUser, {
           displayName: displayName
         });
-        await createUserProfile(auth.currentUser.uid, displayName);
+        await createUserProfile(auth.currentUser.uid, email, password, displayName);
         console.log('User created successfully!');
         uid = userCredential.user.uid;
       }
       gotoChat(uid); // Pass uid to chat page
     } catch (error) {
-      Alert.alert('Authentication error:', error.message);
+      if (error.message.includes('auth/missing-password')) {
+        Alert.alert('Authentication Error:', 'Missing Password');
+      } else if (error.message.includes('auth/invalid-credential')) {
+        Alert.alert('Authentication Error:', 'Email / Password is incorrect.');
+      } else if (error.message.includes('auth/invalid-email')) {
+        Alert.alert('Authentication Error:', 'Invalid Email');
+      } else if (error.message.includes('auth/email-already-in-use')) {
+        Alert.alert('Authentication Error:', 'Email already exists. Please sign in.');
+      } else if (error.message.includes('auth/weak-password')) {
+        Alert.alert('Authentication Error:', 'Password should be at least 6 characters');
+      } else { 
+        Alert.alert('Authentication error:', error.message);
+      }
     }
   };
 
