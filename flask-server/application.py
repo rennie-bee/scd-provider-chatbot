@@ -13,39 +13,36 @@ from chatbotLLM import HeadAgent
 # Load environment variables from .env file
 load_dotenv()
 
-app = Flask(__name__)
-CORS(app)
-
-# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
-# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+application = Flask(__name__)
+CORS(application)
 
 # Pinecone and OpenAI configuration
-app.config['PINECONE_API_KEY'] = os.getenv('PINECONE_API_KEY')
-app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
-app.config['PINECONE_INDEX_NAME'] = os.getenv('PINECONE_INDEX_NAME')
+application.config['PINECONE_API_KEY'] = os.getenv('PINECONE_API_KEY')
+application.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
+application.config['PINECONE_INDEX_NAME'] = os.getenv('PINECONE_INDEX_NAME')
 
 # AWS Environment Variables
-app.config['AWS_REGION'] = os.getenv('AWS_REGION')
-app.config['AWS_S3_USER_IMAGE_BUCKET'] = os.getenv('AWS_S3_USER_IMAGE_BUCKET')
-app.config['AWS_ACCESS_KEY_ID'] = os.getenv('AWS_ACCESS_KEY_ID')
-app.config['AWS_SECRET_ACCESS_KEY'] = os.getenv('AWS_SECRET_ACCESS_KEY')
-app.config['AWS_S3_SCD_DATA_BUCKET'] = os.getenv('AWS_S3_SCD_DATA_BUCKET')
+application.config['AWS_REGION'] = os.getenv('AWS_REGION')
+application.config['AWS_S3_USER_IMAGE_BUCKET'] = os.getenv('AWS_S3_USER_IMAGE_BUCKET')
+application.config['AWS_ACCESS_KEY_ID'] = os.getenv('AWS_ACCESS_KEY_ID')
+application.config['AWS_SECRET_ACCESS_KEY'] = os.getenv('AWS_SECRET_ACCESS_KEY')
+application.config['AWS_S3_SCD_DATA_BUCKET'] = os.getenv('AWS_S3_SCD_DATA_BUCKET')
 
 # Amazon S3 Client Configuration
 s3_client = boto3.client(
     's3',
-    aws_access_key_id=app.config['AWS_ACCESS_KEY_ID'],
-    aws_secret_access_key=app.config['AWS_SECRET_ACCESS_KEY'],
-    region_name=app.config['AWS_REGION']
+    aws_access_key_id=application.config['AWS_ACCESS_KEY_ID'],
+    aws_secret_access_key=application.config['AWS_SECRET_ACCESS_KEY'],
+    region_name=application.config['AWS_REGION']
 )
 
 # AWS DynamoDB Configuration
 dynamodb = boto3.resource(
-        'dynamodb',
-        aws_access_key_id=app.config['AWS_ACCESS_KEY_ID'],
-        aws_secret_access_key=app.config['AWS_SECRET_ACCESS_KEY'],
-        region_name=app.config['AWS_REGION']
-    )
+    'dynamodb',
+    aws_access_key_id=application.config['AWS_ACCESS_KEY_ID'],
+    aws_secret_access_key=application.config['AWS_SECRET_ACCESS_KEY'],
+    region_name=application.config['AWS_REGION']
+)
 
 # AWS DynamoDB Tables
 user_profile_table = dynamodb.Table('UserProfile')
@@ -55,14 +52,14 @@ chat_message_table = dynamodb.Table('ChatMessage')
 ######################################################################
 #  GET INDEX
 ######################################################################
-@app.route('/')
+@application.route('/')
 def index():
     return render_template("index.html")
 
 ######################################################################
 #  RECEIVE FILE UPLOAD NOTIFICATION AND CREATE EMBEDDINGS TO PINECONE
 ######################################################################
-@app.route('/embeddings', methods=['POST'])
+@application.route('/embeddings', methods=['POST'])
 def create_embeddings():
     # Extract filename from the JSON payload sent by Lambda
     data = request.get_json()
@@ -77,7 +74,7 @@ def create_embeddings():
 
     # Read the file content directly from S3
     try:
-        response = s3_client.get_object(Bucket=app.config['AWS_S3_SCD_DATA_BUCKET'], Key=file_key)
+        response = s3_client.get_object(Bucket=application.config['AWS_S3_SCD_DATA_BUCKET'], Key=file_key)
         # Stream the file content. This handles both text and binary files.
         file_stream = response['Body']
 
@@ -85,9 +82,9 @@ def create_embeddings():
         processor = EmbeddingProcessor(
             file_stream=file_stream, 
             doc_type=doc_type,
-            api_key=app.config['PINECONE_API_KEY'],
-            openai_key=app.config['OPENAI_API_KEY'],
-            index_name=app.config['PINECONE_INDEX_NAME']
+            api_key=application.config['PINECONE_API_KEY'],
+            openai_key=application.config['OPENAI_API_KEY'],
+            index_name=application.config['PINECONE_INDEX_NAME']
         )
         processor.process()
 
@@ -100,7 +97,7 @@ def create_embeddings():
 ######################################################################
 #  START CHAT SESSION
 ######################################################################
-@app.route('/chat/<string:user_id>/start_session', methods=['POST'])
+@application.route('/chat/<string:user_id>/start_session', methods=['POST'])
 def start_chat(user_id):
     # Generate a unique session ID
     session_id = str(uuid.uuid4())
@@ -115,7 +112,7 @@ def start_chat(user_id):
 ######################################################################
 #  HANDLE IN-PROGRESS CHAT SESSION
 ######################################################################
-@app.route('/chat/<string:user_id>/<string:session_id>', methods=['POST'])
+@application.route('/chat/<string:user_id>/<string:session_id>', methods=['POST'])
 def chat(user_id, session_id):
     data = request.get_json()
     user_input = data.get('user_input', '')
@@ -124,7 +121,7 @@ def chat(user_id, session_id):
         return jsonify({'error': 'No message provided'}), 400
 
     user_input_timestamp = datetime.now(timezone.utc)
-    # Retrive previous chat messages
+    # Retrieve previous chat messages
     history = []
     history.append(('assistant', 'What would you like to chat about?'))
     # Construct the session_id to use in querying messages
@@ -145,9 +142,103 @@ def chat(user_id, session_id):
 
     # Initialize head agent of LLM model
     head_agent = HeadAgent(
-        openai_key=app.config['OPENAI_API_KEY'], 
-        pinecone_key=app.config['PINECONE_API_KEY'], 
-        pinecone_index_name=app.config['PINECONE_INDEX_NAME'],
+        openai_key=application.config['OPENAI_API_KEY'], 
+        pinecone_key=application.config['PINECONE_API_KEY'], 
+        pinecone_index_name=application.config['PINECONE_INDEX_NAME'],
+        messages=history
+    )
+    # Set up chat mode, e.g. chatty
+    head_agent.setup_sub_agents()
+
+    # Get response from the LLM model
+    chatbot_response = head_agent.process_input(user_input)
+    chatbot_response_timestamp = datetime.now(timezone.utc)
+    message_id = str(uuid.uuid4()) # Generate a unique message ID 
+    timestamp = datetime.now(timezone.utc)
+
+    chat_message = ChatMessage(
+        user_id=user_id, 
+        session_id=session_id, 
+        message_id=message_id,
+        timestamp=timestamp, 
+        user_input=user_input, 
+        user_input_timestamp=user_input_timestamp, 
+        chatbot_response=chatbot_response, 
+        chatbot_response_timestamp=chatbot_response_timestamp
+    )
+
+    # Save chat message
+    try:
+        chat_message.save(chat_message_table)
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+
+    # Update the session's end_time to the latest activity time
+    try:
+        chat_session_table.update_item(
+            Key={
+                'user_id': user_id,
+                'session_id': session_id
+            },
+            UpdateExpression='SET end_time = :val',
+            ExpressionAttributeValues={
+                ':val': timestamp.isoformat()
+            },
+            ReturnValues='UPDATED_NEW'
+        )
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+
+    return jsonify({'response': chatbot_response}), 200
+
+######################################################################
+#  REGENERATE CHATBOT RESPONSE
+######################################################################
+@application.route('/chat/<string:user_id>/<string:session_id>/<string:message_id>/regenerate', methods=['POST'])
+def regenerate_answer(user_id, session_id, message_id):
+    data = request.get_json()
+    user_input = data.get('user_input', '')
+    
+    if not user_input:
+        return jsonify({'error': 'No message provided'}), 400
+    
+    user_input_timestamp = datetime.now(timezone.utc)
+    # Construct the session_id to use in deleting and querying messages
+    user_session_id = f"{user_id}#{session_id}"
+    # Delete chat message with the same id
+    try:
+        chat_message_table.delete_item(
+            Key={
+                'user_session_id': user_session_id,
+                'message_id': message_id # Use GSI to delete message
+            }
+        )
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+
+    # Retrieve previous chat messages
+    history = []
+    history.append(('assistant', 'What would you like to chat about?'))
+
+    # Query for messages using the composite message_id key
+    try:
+        message_response = chat_message_table.query(
+            KeyConditionExpression=Key('user_session_id').eq(user_session_id),
+            ScanIndexForward=True  # True for ascending order of the sort key
+        )
+    except Exception as e:
+        return jsonify({'message': str(e), 'status': 'error'}), 500
+
+    messages = message_response['Items']
+    for message in messages:
+        history.append(('user', message['user_input']))
+        history.append(('assistant', message['chatbot_response']))
+
+    # Initialize head agent of LLM model
+    head_agent = HeadAgent(
+        openai_key=application.config['OPENAI_API_KEY'], 
+        pinecone_key=application.config['PINECONE_API_KEY'], 
+        pinecone_index_name=application.config['PINECONE_INDEX_NAME'],
         messages=history
     )
     # Set up chat mode, e.g. chatty
@@ -197,7 +288,7 @@ def chat(user_id, session_id):
 ######################################################################
 #  RETRIEVE CHAT HISTORY
 ######################################################################
-@app.route('/chat/<string:user_id>/history', methods=['GET'])
+@application.route('/chat/<string:user_id>/history', methods=['GET'])
 def get_chat_history(user_id):
     # Retrieve all sessions for the user
     try:
@@ -242,12 +333,12 @@ def get_chat_history(user_id):
 ######################################################################
 #  GENERATE PRESIGNED URL FOR USER IMAGE UPLOAD
 ######################################################################
-@app.route('/generate-presigned-url/<string:filename>', methods=['GET'])
+@application.route('/generate-presigned-url/<string:filename>', methods=['GET'])
 def get_presigned_url(filename):
     if not filename:
         return jsonify({'error': 'Filename is required'}), 400
 
-    url = create_presigned_url(app.config['AWS_S3_USER_IMAGE_BUCKET'], filename)
+    url = create_presigned_url(application.config['AWS_S3_USER_IMAGE_BUCKET'], filename)
     if url:
         return jsonify({'url': url}), 200
     else:
@@ -256,14 +347,14 @@ def get_presigned_url(filename):
 ######################################################################
 #  ADD USER PROFILE
 ######################################################################
-@app.route('/profile', methods=['POST'])
+@application.route('/profile', methods=['POST'])
 def add_user_profile():
     data = request.get_json()
     image_name = data.get('image_name')
 
     # Construct the full S3 URL from the filename if image_name is provided
     if image_name:
-        image_url = f"https://{app.config['AWS_S3_USER_IMAGE_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{image_name}"
+        image_url = f"https://{application.config['AWS_S3_USER_IMAGE_BUCKET']}.s3.{application.config['AWS_REGION']}.amazonaws.com/{image_name}"
     else:
         image_url = None
 
@@ -289,7 +380,7 @@ def add_user_profile():
 ######################################################################
 #  UPDATE EXISTING USER PROFILE
 ######################################################################
-@app.route('/profile/<string:user_id>', methods=['PUT'])
+@application.route('/profile/<string:user_id>', methods=['PUT'])
 def update_user_profile(user_id):
     data = request.get_json()
     if not data:
@@ -306,7 +397,7 @@ def update_user_profile(user_id):
 
     # Special handling for image URL if image_name is provided
     if 'image_name' in data:
-        image_url = f"https://{app.config['AWS_S3_USER_IMAGE_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{data['image_name']}"
+        image_url = f"https://{application.config['AWS_S3_USER_IMAGE_BUCKET']}.s3.{application.config['AWS_REGION']}.amazonaws.com/{data['image_name']}"
         update_expression += "user_image = :user_image, "
         expression_attribute_values[":user_image"] = image_url
 
@@ -331,7 +422,7 @@ def update_user_profile(user_id):
 ######################################################################
 #  RETRIEVE USER PROFILE
 ######################################################################
-@app.route('/profile/<string:user_id>', methods=['GET'])
+@application.route('/profile/<string:user_id>', methods=['GET'])
 def get_user_profile(user_id):
     user_profile = UserProfile.get(user_id, user_profile_table)
     if not user_profile:
@@ -352,7 +443,7 @@ def get_user_profile(user_id):
 ######################################################################
 #  RETRIEVE FAQ
 ######################################################################
-@app.route('/faq', methods=['GET'])
+@application.route('/faq', methods=['GET'])
 def get_faq():
     pass
 
@@ -390,4 +481,4 @@ def create_presigned_url(bucket_name, object_name, expiration=3600):
 
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=8080, debug=True)
+    application.run(host='127.0.0.1', port=8080, debug=True)
