@@ -38,8 +38,8 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages }) => {
       { cancelable: true }
     );
   };
-  console.log('ChatArea');
-  console.log(messages);
+  // console.log('ChatArea');
+  // console.log(messages);
   return (
     <KeyboardAvoidingView style={styles.container} behavior="padding" enabled>
       <ScrollView style={styles.chatContainer}>

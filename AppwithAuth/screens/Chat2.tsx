@@ -26,7 +26,7 @@ export default function Chat2() {
     // Start session and retrieve session ID at the very beginning
     const startSession = async () => {
       try {
-        const response = await fetch(`http://10.20.128.246:8080/chat/${userId}/start_session`, {
+        const response = await fetch(`http://127.0.0.1:8080/chat/${userId}/start_session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         });
@@ -41,13 +41,13 @@ export default function Chat2() {
         console.error('Error fetching data:', error);
       }
     };
-    console.log(userId);
+    // console.log(userId);
     startSession();
   }, [userId]);
 
   // Added fetch request to Flask backend
   const handleSendMessage = async (newMessage: string) => {
-    console.log(sessionId);
+    // console.log(sessionId);
 
     const sentMessage: Message = {
       id: Date.now(),
@@ -61,7 +61,7 @@ export default function Chat2() {
 
     try {
       // Update the URL accordingly
-      const response = await fetch(`http://10.20.128.246:8080/chat/${userId}/${sessionId}`, {
+      const response = await fetch(`http://127.0.0.1:8080/chat/${userId}/${sessionId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -85,7 +85,7 @@ export default function Chat2() {
 
         setMessages(currentMessages => [...currentMessages, receivedMessage]);
         // Update chatbot response timestamp
-        const updateResponse = await fetch(`http://10.20.128.246:8080/chat/${userId}/${sessionId}/${receivedMessage.message_id}/timestamp`, {
+        const updateResponse = await fetch(`http://127.0.0.1:8080/chat/${userId}/${sessionId}/${receivedMessage.message_id}/timestamp`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
