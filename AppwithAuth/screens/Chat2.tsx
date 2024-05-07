@@ -26,7 +26,7 @@ export default function Chat2() {
     // Start session and retrieve session ID at the very beginning
     const startSession = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:8080/chat/${userId}/start_session`, {
+        const response = await fetch(`http://scd-chatbot-flask-server-env.eba-ycvw2vej.us-east-2.elasticbeanstalk.com/chat/${userId}/start_session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         });
@@ -61,7 +61,7 @@ export default function Chat2() {
 
     try {
       // Update the URL accordingly
-      const response = await fetch(`http://127.0.0.1:8080/chat/${userId}/${sessionId}`, {
+      const response = await fetch(`http://scd-chatbot-flask-server-env.eba-ycvw2vej.us-east-2.elasticbeanstalk.com/chat/${userId}/${sessionId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -85,7 +85,7 @@ export default function Chat2() {
 
         setMessages(currentMessages => [...currentMessages, receivedMessage]);
         // Update chatbot response timestamp
-        const updateResponse = await fetch(`http://127.0.0.1:8080/chat/${userId}/${sessionId}/${receivedMessage.message_id}/timestamp`, {
+        const updateResponse = await fetch(`http://scd-chatbot-flask-server-env.eba-ycvw2vej.us-east-2.elasticbeanstalk.com/chat/${userId}/${sessionId}/${receivedMessage.message_id}/timestamp`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
