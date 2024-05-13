@@ -96,6 +96,61 @@ const Profile = () => {
   );
 };
 
+const saveProfileChanges = async () => {
+  try {
+    const newUsername = username.trim(); 
+    const newEmail = email.trim(); 
+
+    if (!newUsername || !newEmail) {
+      console.error('Username or email is empty.');
+      return; // Early return if the new username or email is empty
+    }
+
+    // Update the user's email in Firebase Authentication
+    const user = auth.currentUser;
+    if (user) {
+      await user.updateEmail(newEmail);
+      console.log('Email updated successfully in Firebase Auth.');
+    }
+
+    const response = await fetch(`http://scd-chatbot-flask-server-env.eba-ycvw2vej.us-east-2.elasticbeanstalk.com/profile/${user.uid}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: newUsername,
+        email: newEmail, // Sending new email to backend as well
+      }),
+    });
+
+    if (!response.ok) throw new Error('Failed to update profile on backend');
+
+    const data = await response.json();
+    console.log('Profile updated in backend:', data.message);
+
+    // Update profile locally
+    await updateProfile(auth.currentUser, {
+      displayName: newUsername
+    });
+
+    // Reflect changes immediately by updating local state
+    setEditModalVisible(false);
+    setUsername(newUsername); // Update local state if used for displaying name
+    setEmail(newEmail); // Update local email state
+
+  } catch (error) {
+    if (error.code === 'auth/requires-recent-login') {
+      console.error('Please re-authenticate to update your email.');
+    } else {
+      console.error('Error updating user profile:', error);
+    }
+  }
+};
+
+
+
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -22,16 +22,39 @@ const db = getFirestore(app);
 
 export { db }; 
 
-const createUserProfile = async (userId, displayName) => {
+const createUserProfile = async (userId, displayName, email) => {
   try {
-    await setDoc(doc(db, 'users', userId), {
-      displayName: displayName,
-    });
+    // Create user profile in Firestore
+    await setDoc(doc(db, 'users', userId), { displayName });
     console.log('User profile created successfully in Firestore!');
+
+    // Call backend to save the user profile
+    await createUserProfileBackend(userId, displayName, email);
   } catch (error) {
     console.error('Error creating user profile:', error);
   }
 };
+
+const createUserProfileBackend = async (userId, displayName, email) => {
+  try {
+    const response = await fetch('http://scd-chatbot-flask-server-env.eba-ycvw2vej.us-east-2.elasticbeanstalk.com/profile', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        name: displayName,
+        email: email,
+      }),
+    });
+    const data = await response.json();
+    console.log('User profile saved in backend:', data.message);
+  } catch (error) {
+    console.error('Error saving user profile to backend:', error);
+  }
+};
+
 
 const AuthScreen = ({ email, setEmail, password, setPassword, displayName, setDisplayName, isLogin, setIsLogin, handleAuthentication }) => {
   return (
