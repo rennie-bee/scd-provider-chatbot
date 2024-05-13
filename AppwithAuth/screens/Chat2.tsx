@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableWithoutFeedback,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import ChatArea from '../components/ChatArea';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
@@ -16,7 +16,6 @@ import { Message } from '../components/types';
 // Assuming qna is defined as shown previously
 
 export default function Chat2() {
-  const navigation = useNavigation();
   const route = useRoute();
   const { userId } = route.params; // Retrieve userId passed from Login page
   const [sessionId, setSessionId] = useState(null);
