@@ -4629,7 +4629,11 @@ lightningcss-linux-x64-musl@1.19.0:
 
 lightningcss-win32-x64-msvc@1.19.0:
   version "1.19.0"
+<<<<<<< HEAD
   resolved "https://registry.npmjs.org/lightningcss-win32-x64-msvc/-/lightningcss-win32-x64-msvc-1.19.0.tgz"
+=======
+  resolved "https://registry.yarnpkg.com/lightningcss-win32-x64-msvc/-/lightningcss-win32-x64-msvc-1.19.0.tgz#0854dbd153035eca1396e2227c708ad43655a61c"
+>>>>>>> 6c5a86c67f7670390cba3d8f48755b38e1dc4203
   integrity sha512-C+VuUTeSUOAaBZZOPT7Etn/agx/MatzJzGRkeV+zEABmPuntv1zihncsi+AyGmjkkzq3wVedEy7h0/4S84mUtg==
 
 lightningcss@~1.19.0:

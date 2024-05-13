@@ -97,19 +97,6 @@ const AuthScreen = ({ email, setEmail, password, setPassword, displayName, setDi
   );
 }
 
-
-// const AuthenticatedScreen = ({ user, handleAuthentication }) => {
-//     const navigation = useNavigation()
-//     const gotoChat = () => {
-//         navigation.navigate('Chat')
-//     }
-//   return (
-//     <View style={styles.authContainer}>
-//       <Button title="Logout" onPress={handleAuthentication} color="#e74c3c" />
-//     </View>
-//   );
-// };
-
 export default Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
