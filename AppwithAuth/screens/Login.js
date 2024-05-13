@@ -44,7 +44,7 @@ const createUserProfileBackend = async (userId, displayName, email) => {
       },
       body: JSON.stringify({
         user_id: userId,
-        name: displayName,
+        user_name: displayName,
         email: email,
       }),
     });

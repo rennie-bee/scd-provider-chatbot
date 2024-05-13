@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { getAuth, signOut } from '@firebase/auth';
+import { getAuth, updateEmail, updateProfile, signOut } from '@firebase/auth';
 
 const Profile = () => {
   const navigation = useNavigation();
   const auth = getAuth();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [username, setUsername] = useState(''); // Placeholder for username state
+  const [email, setEmail] = useState('');
+
+  useEffect(() => {
+    const startSession = async () => {
+      setUsername(auth.currentUser?.displayName);
+      setEmail(auth.currentUser?.email);
+    };
+    startSession();
+  }, [auth.currentUser]);
 
   const handleSignOut = async () => {
     try {
@@ -15,6 +24,58 @@ const Profile = () => {
       navigation.navigate('Login');
     } catch (error) {
       console.error('Sign Out Error', error);
+    }
+  };
+
+  const saveProfileChanges = async () => {
+    try {
+      const newUsername = username.trim();
+      const newEmail = email.trim(); 
+  
+      if (!newUsername || !newEmail) {
+        console.error('Username or email is empty.');
+        return; // Early return if the new username or email is empty
+      }
+  
+      // Update the user's email in Firebase Authentication
+      const user = auth.currentUser;
+      if (user) {
+        await updateEmail(user, newEmail);
+        console.log('Email updated successfully in Firebase Auth.');
+      }
+      console.log(user.uid);
+      const response = await fetch(`http://scd-chatbot-flask-server-env.eba-ycvw2vej.us-east-2.elasticbeanstalk.com/profile/${user.uid}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_name: newUsername,
+          email: newEmail, // Sending new email to backend as well
+        }),
+      });
+  
+      if (!response.ok) throw new Error('Failed to update profile on backend');
+  
+      const data = await response.json();
+      console.log('Profile updated in backend:', data.message);
+  
+      // Update profile locally
+      await updateProfile(auth.currentUser, {
+        displayName: newUsername
+      });
+  
+      // Reflect changes immediately by updating local state
+      setEditModalVisible(false);
+      setUsername(newUsername); // Update local state if used for displaying name
+      setEmail(newEmail); // Update local email state
+  
+    } catch (error) {
+      if (error.code === 'auth/requires-recent-login') {
+        console.error('Please re-authenticate to update your email.');
+      } else {
+        console.error('Error updating user profile:', error);
+      }
     }
   };
 
@@ -30,14 +91,14 @@ const Profile = () => {
             style={styles.profilePhoto}
             source={{uri: 'https://st2.depositphotos.com/4060975/9157/v/450/depositphotos_91577612-stock-illustration-doctor-colored-vector-icon.jpg'}}
           />
-          <Text style={styles.nameText}>{auth.currentUser?.displayName}</Text>
+          <Text style={styles.nameText}>{username}</Text>
         </View>
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>Full Name: {auth.currentUser?.displayName}</Text>
-          <Text style={styles.infoText}>Email: {auth.currentUser?.email}</Text>
+          <Text style={styles.infoText}>Full Name: {username}</Text>
+          <Text style={styles.infoText}>Email: {email}</Text>
           <Text style={styles.infoText}>Medical ID: 000001</Text>
         </View>
       </View>
@@ -77,14 +138,15 @@ const Profile = () => {
             />
             <TextInput
               style={styles.modalInput}
-              onChangeText={(text) => auth.currentUser.updateEmail(text)}
-              value={auth.currentUser?.email}
+              onChangeText={setEmail}
+              value={email}
               placeholder="Email"
             />
             <TouchableOpacity
               style={styles.saveButton}
               onPress={() => {
                 setEditModalVisible(false);
+                saveProfileChanges();
               }}
             >
               <Text style={styles.saveButtonText}>Save Profile</Text>
@@ -95,61 +157,6 @@ const Profile = () => {
     </ScrollView>
   );
 };
-
-const saveProfileChanges = async () => {
-  try {
-    const newUsername = username.trim(); 
-    const newEmail = email.trim(); 
-
-    if (!newUsername || !newEmail) {
-      console.error('Username or email is empty.');
-      return; // Early return if the new username or email is empty
-    }
-
-    // Update the user's email in Firebase Authentication
-    const user = auth.currentUser;
-    if (user) {
-      await user.updateEmail(newEmail);
-      console.log('Email updated successfully in Firebase Auth.');
-    }
-
-    const response = await fetch(`http://scd-chatbot-flask-server-env.eba-ycvw2vej.us-east-2.elasticbeanstalk.com/profile/${user.uid}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: newUsername,
-        email: newEmail, // Sending new email to backend as well
-      }),
-    });
-
-    if (!response.ok) throw new Error('Failed to update profile on backend');
-
-    const data = await response.json();
-    console.log('Profile updated in backend:', data.message);
-
-    // Update profile locally
-    await updateProfile(auth.currentUser, {
-      displayName: newUsername
-    });
-
-    // Reflect changes immediately by updating local state
-    setEditModalVisible(false);
-    setUsername(newUsername); // Update local state if used for displaying name
-    setEmail(newEmail); // Update local email state
-
-  } catch (error) {
-    if (error.code === 'auth/requires-recent-login') {
-      console.error('Please re-authenticate to update your email.');
-    } else {
-      console.error('Error updating user profile:', error);
-    }
-  }
-};
-
-
-
 
 const styles = StyleSheet.create({
   container: {
