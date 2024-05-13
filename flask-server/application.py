@@ -408,7 +408,7 @@ def add_user_profile():
     # Create an instance of UserProfile with the provided and constructed data
     user_profile = UserProfile(
         user_id=data.get('user_id'),
-        name=data.get('name'),
+        user_name=data.get('user_name'),
         medical_id=data.get('medical_id'),
         preferred_name=data.get('preferred_name'),
         email=data.get('email'),
@@ -476,7 +476,7 @@ def get_user_profile(user_id):
     
     user_data = {
         'user_id': user_profile.user_id,
-        'name': user_profile.name,
+        'user_name': user_profile.user_name,
         'medical_id': user_profile.medical_id,
         'preferred_name': user_profile.preferred_name,
         'email': user_profile.email,

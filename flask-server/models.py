@@ -1,8 +1,8 @@
 class UserProfile:
-    def __init__(self, user_id, email, name=None, medical_id=None, preferred_name=None, user_image=None, expertise=None):
+    def __init__(self, user_id, email, user_name=None, medical_id=None, preferred_name=None, user_image=None, expertise=None):
         self.user_id = user_id
         self.email = email
-        self.name = name
+        self.user_name = user_name
         self.medical_id = medical_id
         self.preferred_name = preferred_name
         self.user_image = user_image
@@ -12,7 +12,7 @@ class UserProfile:
         item = {
             'user_id': self.user_id,
             'email': self.email,
-            'name': self.name,
+            'user_name': self.user_name,
             'medical_id': self.medical_id,
             'preferred_name': self.preferred_name,
             'user_image': self.user_image,
