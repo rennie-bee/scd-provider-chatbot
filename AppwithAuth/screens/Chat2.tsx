@@ -25,7 +25,7 @@ export default function Chat2() {
     // Start session and retrieve session ID at the very beginning
     const startSession = async () => {
       try {
-        const response = await fetch(`http://scd-chatbot-flask-server-env.eba-ycvw2vej.us-east-2.elasticbeanstalk.com/chat/${userId}/start_session`, {
+        const response = await fetch(`http://scd-chatbot-flask-server-env.eba-ycvw2vej.us-east-2.elasticbeanstalk.com/chat/${userId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         });
