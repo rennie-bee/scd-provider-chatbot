@@ -73,6 +73,10 @@ const Profile = () => {
     } catch (error) {
       if (error.code === 'auth/requires-recent-login') {
         console.error('Please re-authenticate to update your email.');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        console.error('Please re-authenticate to update your email.');
+      } else if (error.message.includes('[Error: Failed to update profile on backend]')) {
+        console.error('Name updated temporarily.');
       } else {
         console.error('Error updating user profile:', error);
       }
