@@ -125,7 +125,9 @@ for key in concat_text.keys():
 # Convert the list of texts into a DataFrame
 df = pd.DataFrame(zip(text_chunks,pg_no_arr), columns=['text','pg_no'])
 # print(df.head())
-# print(dfhead)
+print(text_chunks)
+print(pg_no_arr)
+print(dfhead)
 
 
 # Function to get the embeddings of the text using OpenAI text-embedding-ada-002 model
